@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "11695290338",
+    "project_id": "vubble-1bdf9",
+    "storage_bucket": "vubble-1bdf9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:11695290338:android:9c808f037750325016ebbb",
+        "android_client_info": {
+          "package_name": "com.example.vubble"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQwPjWJs8Aziw1Uhd78iSA5pnwr4pmV-4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:11695290338:android:6147802c9a88daf316ebbb",
+        "android_client_info": {
+          "package_name": "com.vubble.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQwPjWJs8Aziw1Uhd78iSA5pnwr4pmV-4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:11695290338:android:cb0e8be6e03d762816ebbb",
+        "android_client_info": {
+          "package_name": "com.vubble.vubble"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQwPjWJs8Aziw1Uhd78iSA5pnwr4pmV-4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

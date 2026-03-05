@@ -1,0 +1,53 @@
+name: vubble
+description: "Closed-campus peer-to-peer gig and rental marketplace."
+publish_to: 'none'
+version: 1.0.1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^3.0.0
+  firebase_auth: ^5.0.0
+  cloud_firestore: ^5.0.0
+  firebase_messaging: ^15.0.0
+  firebase_storage: ^12.0.0
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Navigation
+  go_router: ^14.0.0
+
+  # UI
+  cupertino_icons: ^1.0.8
+  cached_network_image: ^3.3.1
+  flutter_rating_bar: ^4.0.1
+  shimmer: ^3.0.0
+
+  # Utilities
+  image_picker: ^1.1.2
+  intl: ^0.19.0
+  uuid: ^4.4.0
+  timeago: ^3.6.1
+  equatable: ^2.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.3
+  custom_lint: 0.7.6
+  riverpod_lint: ^2.3.10
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
