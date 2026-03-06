@@ -10,238 +10,274 @@ enum RentalStatus {
   cancelled,
 }
 
-class RentalListingModel {
-  final String listingId;
-  final String ownerId;
+enum RentalCategory {
+  electronics,
+  labGear,
+  books,
+  sports,
+  clothing,
+  other,
+}
 
-  final String itemName;
-  final String description;
-  final double dailyRate;
-  final double? depositAmount;
-  final String? itemPhotoUrl;
-
-  final DateTime availableFrom;
-  final DateTime availableTo;
-
-  final RentalStatus status;
-
-  final DateTime createdAt;
-
-  RentalListingModel({
-    required this.listingId,
-    required this.ownerId,
-    required this.itemName,
-    required this.description,
-    required this.dailyRate,
-    this.depositAmount,
-    this.itemPhotoUrl,
-    required this.availableFrom,
-    required this.availableTo,
-    this.status = RentalStatus.available,
-    required this.createdAt,
-  });
-
-  bool get isAvailable => status == RentalStatus.available;
-
-  factory RentalListingModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return RentalListingModel(
-      listingId: doc.id,
-      ownerId: data['ownerId'] ?? '',
-      itemName: data['itemName'] ?? '',
-      description: data['description'] ?? '',
-      dailyRate: (data['dailyRate'] ?? 0.0).toDouble(),
-      depositAmount: data['depositAmount']?.toDouble(),
-      itemPhotoUrl: data['itemPhotoUrl'],
-      availableFrom: (data['availableFrom'] as Timestamp).toDate(),
-      availableTo: (data['availableTo'] as Timestamp).toDate(),
-      status: RentalStatus.values.firstWhere(
-        (s) => s.name == (data['status'] ?? 'available'),
-        orElse: () => RentalStatus.available,
-      ),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-    );
+extension RentalStatusLabel on RentalStatus {
+  String get label {
+    switch (this) {
+      case RentalStatus.available:     return 'AVAILABLE';
+      case RentalStatus.requested:     return 'REQUESTED';
+      case RentalStatus.active:        return 'ACTIVE';
+      case RentalStatus.returnPending: return 'RETURN PENDING';
+      case RentalStatus.completed:     return 'COMPLETED';
+      case RentalStatus.disputed:      return 'DISPUTED';
+      case RentalStatus.cancelled:     return 'CANCELLED';
+    }
   }
 
-  Map<String, dynamic> toFirestore() {
-    return {
-      'ownerId': ownerId,
-      'itemName': itemName,
-      'description': description,
-      'dailyRate': dailyRate,
-      'depositAmount': depositAmount,
-      'itemPhotoUrl': itemPhotoUrl,
-      'availableFrom': Timestamp.fromDate(availableFrom),
-      'availableTo': Timestamp.fromDate(availableTo),
-      'status': status.name,
-      'createdAt': Timestamp.fromDate(createdAt),
-    };
-  }
-
-  RentalListingModel copyWith({
-    String? itemName,
-    String? description,
-    double? dailyRate,
-    double? depositAmount,
-    String? itemPhotoUrl,
-    DateTime? availableFrom,
-    DateTime? availableTo,
-    RentalStatus? status,
-  }) {
-    return RentalListingModel(
-      listingId: listingId,
-      ownerId: ownerId,
-      itemName: itemName ?? this.itemName,
-      description: description ?? this.description,
-      dailyRate: dailyRate ?? this.dailyRate,
-      depositAmount: depositAmount ?? this.depositAmount,
-      itemPhotoUrl: itemPhotoUrl ?? this.itemPhotoUrl,
-      availableFrom: availableFrom ?? this.availableFrom,
-      availableTo: availableTo ?? this.availableTo,
-      status: status ?? this.status,
-      createdAt: createdAt,
-    );
+  String get firestoreValue {
+    switch (this) {
+      case RentalStatus.available:     return 'available';
+      case RentalStatus.requested:     return 'requested';
+      case RentalStatus.active:        return 'active';
+      case RentalStatus.returnPending: return 'returnPending';
+      case RentalStatus.completed:     return 'completed';
+      case RentalStatus.disputed:      return 'disputed';
+      case RentalStatus.cancelled:     return 'cancelled';
+    }
   }
 }
 
-// ── Rental Request (a specific booking against a listing) ──────────────────
+extension RentalCategoryLabel on RentalCategory {
+  String get label {
+    switch (this) {
+      case RentalCategory.electronics: return 'Electronics';
+      case RentalCategory.labGear:     return 'Lab Gear';
+      case RentalCategory.books:       return 'Books';
+      case RentalCategory.sports:      return 'Sports';
+      case RentalCategory.clothing:    return 'Clothing';
+      case RentalCategory.other:       return 'Other';
+    }
+  }
 
-class RentalRequestModel {
-  final String requestId;
-  final String listingId;
-  final String renterId;
+  String get emoji {
+    switch (this) {
+      case RentalCategory.electronics: return '📷';
+      case RentalCategory.labGear:     return '🔬';
+      case RentalCategory.books:       return '📖';
+      case RentalCategory.sports:      return '⚽';
+      case RentalCategory.clothing:    return '🥼';
+      case RentalCategory.other:       return '📦';
+    }
+  }
+}
+
+class RentalModel {
+  final String rentalId;
+  final String itemName;
+  final String description;
+  final RentalCategory category;
+  final int dailyRate;
+  final int deposit;
+
+  // Availability window
+  final DateTime availableFrom;
+  final DateTime availableTo;
+
+  // Owner
   final String ownerId;
+  final String ownerName;
+  final double ownerRating;
 
-  final DateTime startDate;
-  final DateTime endDate;
-  final double totalCost;
-  final double? depositAmount;
+  // Renter (set once requested)
+  final String? renterId;
+  final String? renterName;
 
+  // Rental period (set once active)
+  final DateTime? rentalStart;
+  final DateTime? rentalEnd;
+
+  // State
   final RentalStatus status;
 
-  final double? ownerRating;
-  final String? ownerReview;
-  final double? renterRating;
-  final String? renterReview;
+  // Computed
+  final int totalRentals;
 
-  final String? disputeReason;
+  // Timestamps
   final DateTime createdAt;
+  final DateTime? requestedAt;
   final DateTime? approvedAt;
-  final DateTime? returnedAt;
-  final DateTime? completedAt;
+  final DateTime? returnRequestedAt;
+  final DateTime? returnConfirmedAt;
 
-  RentalRequestModel({
-    required this.requestId,
-    required this.listingId,
-    required this.renterId,
+  // Review flags
+  final bool ownerRated;
+  final bool renterRated;
+
+  const RentalModel({
+    required this.rentalId,
+    required this.itemName,
+    required this.description,
+    required this.category,
+    required this.dailyRate,
+    this.deposit = 0,
+    required this.availableFrom,
+    required this.availableTo,
     required this.ownerId,
-    required this.startDate,
-    required this.endDate,
-    required this.totalCost,
-    this.depositAmount,
-    this.status = RentalStatus.requested,
-    this.ownerRating,
-    this.ownerReview,
-    this.renterRating,
-    this.renterReview,
-    this.disputeReason,
+    required this.ownerName,
+    this.ownerRating = 0.0,
+    this.renterId,
+    this.renterName,
+    this.rentalStart,
+    this.rentalEnd,
+    this.status = RentalStatus.available,
+    this.totalRentals = 0,
     required this.createdAt,
+    this.requestedAt,
     this.approvedAt,
-    this.returnedAt,
-    this.completedAt,
+    this.returnRequestedAt,
+    this.returnConfirmedAt,
+    this.ownerRated = false,
+    this.renterRated = false,
   });
 
-  int get rentalDays => endDate.difference(startDate).inDays;
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
-  bool get isLate =>
-      status == RentalStatus.active && DateTime.now().isAfter(endDate);
+  bool get isAvailable     => status == RentalStatus.available;
+  bool get isRequested     => status == RentalStatus.requested;
+  bool get isActive        => status == RentalStatus.active;
+  bool get isReturnPending => status == RentalStatus.returnPending;
+  bool get isCompleted     => status == RentalStatus.completed;
+  bool get isDisputed      => status == RentalStatus.disputed;
 
-  factory RentalRequestModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return RentalRequestModel(
-      requestId: doc.id,
-      listingId: data['listingId'] ?? '',
-      renterId: data['renterId'] ?? '',
-      ownerId: data['ownerId'] ?? '',
-      startDate: (data['startDate'] as Timestamp).toDate(),
-      endDate: (data['endDate'] as Timestamp).toDate(),
-      totalCost: (data['totalCost'] ?? 0.0).toDouble(),
-      depositAmount: data['depositAmount']?.toDouble(),
-      status: RentalStatus.values.firstWhere(
-        (s) => s.name == (data['status'] ?? 'requested'),
-        orElse: () => RentalStatus.requested,
+  int get rentalDays {
+    if (rentalStart == null || rentalEnd == null) return 0;
+    return rentalEnd!.difference(rentalStart!).inDays;
+  }
+
+  int get totalCost => (rentalDays * dailyRate) + deposit;
+
+  int get daysRemaining {
+    if (rentalEnd == null) return 0;
+    final remaining = rentalEnd!.difference(DateTime.now()).inDays;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  bool get isOverdue =>
+    rentalEnd != null &&
+    DateTime.now().isAfter(rentalEnd!) &&
+    isActive;
+
+  String get availabilityFormatted =>
+    '${availableFrom.day}/${availableFrom.month} → ${availableTo.day}/${availableTo.month}';
+
+  // ── Firestore ─────────────────────────────────────────────────────────────
+
+  factory RentalModel.fromFirestore(DocumentSnapshot doc) {
+    final d = doc.data() as Map<String, dynamic>;
+    return RentalModel(
+      rentalId:    doc.id,
+      itemName:    d['itemName']    ?? '',
+      description: d['description'] ?? '',
+      category: RentalCategory.values.firstWhere(
+        (c) => c.name == (d['category'] ?? 'other'),
+        orElse: () => RentalCategory.other,
       ),
-      ownerRating: data['ownerRating']?.toDouble(),
-      ownerReview: data['ownerReview'],
-      renterRating: data['renterRating']?.toDouble(),
-      renterReview: data['renterReview'],
-      disputeReason: data['disputeReason'],
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      approvedAt: data['approvedAt'] != null
-          ? (data['approvedAt'] as Timestamp).toDate()
-          : null,
-      returnedAt: data['returnedAt'] != null
-          ? (data['returnedAt'] as Timestamp).toDate()
-          : null,
-      completedAt: data['completedAt'] != null
-          ? (data['completedAt'] as Timestamp).toDate()
-          : null,
+      dailyRate:   (d['dailyRate']  ?? 0) as int,
+      deposit:     (d['deposit']    ?? 0) as int,
+      availableFrom: (d['availableFrom'] as Timestamp).toDate(),
+      availableTo:   (d['availableTo']   as Timestamp).toDate(),
+      ownerId:     d['ownerId']     ?? '',
+      ownerName:   d['ownerName']   ?? '',
+      ownerRating: (d['ownerRating'] ?? 0.0).toDouble(),
+      renterId:    d['renterId'],
+      renterName:  d['renterName'],
+      rentalStart: d['rentalStart'] != null ? (d['rentalStart'] as Timestamp).toDate() : null,
+      rentalEnd:   d['rentalEnd']   != null ? (d['rentalEnd']   as Timestamp).toDate() : null,
+      status: RentalStatus.values.firstWhere(
+        (s) => s.firestoreValue == (d['status'] ?? 'available'),
+        orElse: () => RentalStatus.available,
+      ),
+      totalRentals:       (d['totalRentals'] ?? 0) as int,
+      createdAt:          (d['createdAt'] as Timestamp).toDate(),
+      requestedAt:        d['requestedAt']       != null ? (d['requestedAt']       as Timestamp).toDate() : null,
+      approvedAt:         d['approvedAt']        != null ? (d['approvedAt']        as Timestamp).toDate() : null,
+      returnRequestedAt:  d['returnRequestedAt'] != null ? (d['returnRequestedAt'] as Timestamp).toDate() : null,
+      returnConfirmedAt:  d['returnConfirmedAt'] != null ? (d['returnConfirmedAt'] as Timestamp).toDate() : null,
+      ownerRated:  d['ownerRated']  ?? false,
+      renterRated: d['renterRated'] ?? false,
     );
   }
 
-  Map<String, dynamic> toFirestore() {
-    return {
-      'listingId': listingId,
-      'renterId': renterId,
-      'ownerId': ownerId,
-      'startDate': Timestamp.fromDate(startDate),
-      'endDate': Timestamp.fromDate(endDate),
-      'totalCost': totalCost,
-      'depositAmount': depositAmount,
-      'status': status.name,
-      'ownerRating': ownerRating,
-      'ownerReview': ownerReview,
-      'renterRating': renterRating,
-      'renterReview': renterReview,
-      'disputeReason': disputeReason,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'approvedAt': approvedAt != null ? Timestamp.fromDate(approvedAt!) : null,
-      'returnedAt': returnedAt != null ? Timestamp.fromDate(returnedAt!) : null,
-      'completedAt':
-          completedAt != null ? Timestamp.fromDate(completedAt!) : null,
-    };
-  }
+  Map<String, dynamic> toFirestore() => {
+    'itemName':          itemName,
+    'description':       description,
+    'category':          category.name,
+    'dailyRate':         dailyRate,
+    'deposit':           deposit,
+    'availableFrom':     Timestamp.fromDate(availableFrom),
+    'availableTo':       Timestamp.fromDate(availableTo),
+    'ownerId':           ownerId,
+    'ownerName':         ownerName,
+    'ownerRating':       ownerRating,
+    'renterId':          renterId,
+    'renterName':        renterName,
+    'rentalStart':       rentalStart       != null ? Timestamp.fromDate(rentalStart!)      : null,
+    'rentalEnd':         rentalEnd         != null ? Timestamp.fromDate(rentalEnd!)        : null,
+    'status':            status.firestoreValue,
+    'totalRentals':      totalRentals,
+    'createdAt':         Timestamp.fromDate(createdAt),
+    'requestedAt':       requestedAt       != null ? Timestamp.fromDate(requestedAt!)      : null,
+    'approvedAt':        approvedAt        != null ? Timestamp.fromDate(approvedAt!)       : null,
+    'returnRequestedAt': returnRequestedAt != null ? Timestamp.fromDate(returnRequestedAt!): null,
+    'returnConfirmedAt': returnConfirmedAt != null ? Timestamp.fromDate(returnConfirmedAt!): null,
+    'ownerRated':        ownerRated,
+    'renterRated':       renterRated,
+  };
 
-  RentalRequestModel copyWith({
+  RentalModel copyWith({
+    String? itemName,
+    String? description,
+    RentalCategory? category,
+    int? dailyRate,
+    int? deposit,
+    DateTime? availableFrom,
+    DateTime? availableTo,
+    String? renterId,
+    String? renterName,
+    DateTime? rentalStart,
+    DateTime? rentalEnd,
     RentalStatus? status,
-    double? ownerRating,
-    String? ownerReview,
-    double? renterRating,
-    String? renterReview,
-    String? disputeReason,
+    int? totalRentals,
+    DateTime? requestedAt,
     DateTime? approvedAt,
-    DateTime? returnedAt,
-    DateTime? completedAt,
+    DateTime? returnRequestedAt,
+    DateTime? returnConfirmedAt,
+    bool? ownerRated,
+    bool? renterRated,
   }) {
-    return RentalRequestModel(
-      requestId: requestId,
-      listingId: listingId,
-      renterId: renterId,
-      ownerId: ownerId,
-      startDate: startDate,
-      endDate: endDate,
-      totalCost: totalCost,
-      depositAmount: depositAmount,
-      status: status ?? this.status,
-      ownerRating: ownerRating ?? this.ownerRating,
-      ownerReview: ownerReview ?? this.ownerReview,
-      renterRating: renterRating ?? this.renterRating,
-      renterReview: renterReview ?? this.renterReview,
-      disputeReason: disputeReason ?? this.disputeReason,
-      createdAt: createdAt,
-      approvedAt: approvedAt ?? this.approvedAt,
-      returnedAt: returnedAt ?? this.returnedAt,
-      completedAt: completedAt ?? this.completedAt,
+    return RentalModel(
+      rentalId:          rentalId,
+      itemName:          itemName          ?? this.itemName,
+      description:       description       ?? this.description,
+      category:          category          ?? this.category,
+      dailyRate:         dailyRate         ?? this.dailyRate,
+      deposit:           deposit           ?? this.deposit,
+      availableFrom:     availableFrom     ?? this.availableFrom,
+      availableTo:       availableTo       ?? this.availableTo,
+      ownerId:           ownerId,
+      ownerName:         ownerName,
+      ownerRating:       ownerRating,
+      renterId:          renterId          ?? this.renterId,
+      renterName:        renterName        ?? this.renterName,
+      rentalStart:       rentalStart       ?? this.rentalStart,
+      rentalEnd:         rentalEnd         ?? this.rentalEnd,
+      status:            status            ?? this.status,
+      totalRentals:      totalRentals      ?? this.totalRentals,
+      createdAt:         createdAt,
+      requestedAt:       requestedAt       ?? this.requestedAt,
+      approvedAt:        approvedAt        ?? this.approvedAt,
+      returnRequestedAt: returnRequestedAt ?? this.returnRequestedAt,
+      returnConfirmedAt: returnConfirmedAt ?? this.returnConfirmedAt,
+      ownerRated:        ownerRated        ?? this.ownerRated,
+      renterRated:       renterRated       ?? this.renterRated,
     );
   }
 }
