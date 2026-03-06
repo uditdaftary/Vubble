@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
-import 'gig_browse_screen.dart';        // same folder, no change
 
 // ─────────────────────────────────────────────
 //  POST GIG SCREEN
@@ -81,7 +80,7 @@ class _PostGigScreenState extends State<PostGigScreen> with SingleTickerProvider
             const SizedBox(height: 8),
             TextFormField(
               controller: _titleCtrl,
-              style: AppText.body(),
+              style: AppText.input(),
               maxLength: 80,
               textCapitalization: TextCapitalization.sentences,
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Please add a title' : null,
@@ -98,7 +97,7 @@ class _PostGigScreenState extends State<PostGigScreen> with SingleTickerProvider
             const SizedBox(height: 8),
             TextFormField(
               controller: _descCtrl,
-              style: AppText.body(size: 14).copyWith(height: 1.5),
+              style: AppText.input(size: 14).copyWith(height: 1.5),
               maxLines: 4,
               maxLength: 500,
               textCapitalization: TextCapitalization.sentences,

@@ -120,7 +120,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  style: AppText.body(),
+                  style: AppText.input(),
                   decoration: const InputDecoration(
                     hintText: 'you@university.edu',
                     prefixIcon: Icon(Icons.alternate_email_rounded,
@@ -148,7 +148,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePass,
-                  style: AppText.body(),
+                  style: AppText.input(),
                   decoration: InputDecoration(
                     hintText: 'Min. 6 characters',
                     prefixIcon: const Icon(Icons.lock_outline_rounded,
@@ -194,7 +194,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirm,
-                  style: AppText.body(),
+                  style: AppText.input(),
                   decoration: InputDecoration(
                     hintText: 'Re-enter password',
                     prefixIcon: const Icon(Icons.lock_outline_rounded,

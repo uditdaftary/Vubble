@@ -86,7 +86,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      style: AppText.body(),
+                      style: AppText.input(),
                       decoration: InputDecoration(
                         hintText: 'you@university.edu',
                         prefixIcon: const Icon(Icons.alternate_email_rounded,
@@ -106,7 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     TextFormField(
                       controller: _passController,
                       obscureText: _obscure,
-                      style: AppText.body(),
+                      style: AppText.input(),
                       decoration: InputDecoration(
                         hintText: '••••••••',
                         prefixIcon: const Icon(Icons.lock_outline_rounded,

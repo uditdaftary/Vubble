@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
-import 'rental_browse_screen.dart';        // same folder, no change
 
 // ─────────────────────────────────────────────
 //  LIST RENTAL SCREEN
@@ -77,7 +76,7 @@ class _ListRentalScreenState extends State<ListRentalScreen> {
           const SizedBox(height: 8),
           TextFormField(
             controller: _titleCtrl,
-            style: AppText.body(),
+            style: AppText.input(),
             maxLength: 80,
             textCapitalization: TextCapitalization.words,
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
@@ -94,7 +93,7 @@ class _ListRentalScreenState extends State<ListRentalScreen> {
           const SizedBox(height: 8),
           TextFormField(
             controller: _descCtrl,
-            style: AppText.body(size: 14).copyWith(height: 1.5),
+            style: AppText.input(size: 14).copyWith(height: 1.5),
             maxLines: 4,
             maxLength: 500,
             textCapitalization: TextCapitalization.sentences,

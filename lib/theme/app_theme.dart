@@ -49,6 +49,12 @@ class AppText {
       color: color ?? AppColors.textMuted, letterSpacing: 1.3,
     );
 
+  /// Use this for ALL TextFormField `style:` — black text, visible on white fill
+  static TextStyle input({double size = 14}) => GoogleFonts.plusJakartaSans(
+    fontSize: size, fontWeight: FontWeight.w500,
+    color: const Color(0xFF0D0D1A),
+  );
+
   static TextStyle price({double size = 20, Color? color}) =>
     GoogleFonts.syne(
       fontSize: size, fontWeight: FontWeight.w800,
@@ -82,15 +88,15 @@ class AppTheme {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.surfaceHigh,
+      fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: const BorderSide(color: Color(0xFFDDDDEE)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: const BorderSide(color: Color(0xFFDDDDEE)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -100,8 +106,17 @@ class AppTheme {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.coral),
       ),
-      hintStyle: GoogleFonts.plusJakartaSans(color: AppColors.textMuted, fontSize: 14),
-      counterStyle: GoogleFonts.plusJakartaSans(color: AppColors.textMuted, fontSize: 11),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.coral, width: 1.5),
+      ),
+      // ← typed text: always dark/readable on white fill
+      hintStyle: GoogleFonts.plusJakartaSans(
+        color: Color(0xFF9999AA), fontSize: 14),
+      counterStyle: GoogleFonts.plusJakartaSans(
+        color: Color(0xFF9999AA), fontSize: 11),
+      prefixIconColor: Color(0xFF9999AA),
+      suffixIconColor: Color(0xFF9999AA),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
