@@ -18,6 +18,10 @@ import '../screens/rentals/my_rentals_screen.dart';
 import '../screens/rentals/rental_browse_screen.dart';
 import '../screens/rentals/list_rental_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/notifications/notifications_screen.dart';
+import '../screens/admin/admin_dashboard_screen.dart';
+import '../screens/admin/user_management_screen.dart';
+import '../screens/admin/reports_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -26,7 +30,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     redirect: (context, state) {
       final isLoggedIn = authState.valueOrNull != null;
-      final isOnAuthPage = state.matchedLocation.startsWith('/login') ||
+      final isOnAuthPage =
+          state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register') ||
           state.matchedLocation.startsWith('/verify-email') ||
           state.matchedLocation.startsWith('/setup-profile') ||
@@ -46,10 +51,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       // ── Auth ──────────────────────────────────
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
@@ -92,6 +94,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ProfileScreen(),
           ),
           GoRoute(
+            path: '/notifications',
+            builder: (context, state) => const NotificationsScreen(),
             path: '/my-gigs',
             builder: (context, state) => const MyGigsScreen(),
           ),
@@ -100,6 +104,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const MyRentalsScreen(),
           ),
         ],
+      ),
+
+      // ── Admin (no bottom nav) ────────────────
+      GoRoute(
+        path: '/admin',
+        builder: (context, state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/admin/users',
+        builder: (context, state) => const UserManagementScreen(),
+      ),
+      GoRoute(
+        path: '/admin/reports',
+        builder: (context, state) => const ReportsScreen(),
       ),
     ],
   );
@@ -113,10 +131,14 @@ class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
   static const _tabs = [
-    _TabItem(path: '/dashboard', icon: Icons.home_rounded,          label: 'Home'),
-    _TabItem(path: '/gigs',      icon: Icons.flash_on_rounded,      label: 'Gigs'),
-    _TabItem(path: '/rentals',   icon: Icons.inventory_2_rounded,   label: 'Rentals'),
-    _TabItem(path: '/profile',   icon: Icons.person_rounded,        label: 'Profile'),
+    _TabItem(path: '/dashboard', icon: Icons.home_rounded, label: 'Home'),
+    _TabItem(path: '/gigs', icon: Icons.flash_on_rounded, label: 'Gigs'),
+    _TabItem(
+      path: '/rentals',
+      icon: Icons.inventory_2_rounded,
+      label: 'Rentals',
+    ),
+    _TabItem(path: '/profile', icon: Icons.person_rounded, label: 'Profile'),
   ];
 
   int _currentIndex(BuildContext context) {
@@ -180,33 +202,41 @@ class _BottomNav extends StatelessWidget {
                 behavior: HitTestBehavior.opaque,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: selected
                         ? const Color(0xFF7B2FFF).withOpacity(0.15)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(
-                      tabs[i].icon,
-                      size: 22,
-                      color: selected
-                          ? const Color(0xFF7B2FFF)
-                          : const Color(0xFF8888AA),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      tabs[i].label,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        tabs[i].icon,
+                        size: 22,
                         color: selected
                             ? const Color(0xFF7B2FFF)
                             : const Color(0xFF8888AA),
                       ),
-                    ),
-                  ]),
+                      const SizedBox(height: 4),
+                      Text(
+                        tabs[i].label,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w400,
+                          color: selected
+                              ? const Color(0xFF7B2FFF)
+                              : const Color(0xFF8888AA),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }),
