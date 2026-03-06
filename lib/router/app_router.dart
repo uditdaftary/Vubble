@@ -12,7 +12,9 @@ import '../screens/auth/setup_profile_screen.dart';
 // App screens
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/gigs/gig_browse_screen.dart';
+import '../screens/gigs/my_gigs_screen.dart';
 import '../screens/gigs/post_gig_screen.dart';
+import '../screens/rentals/my_rentals_screen.dart';
 import '../screens/rentals/rental_browse_screen.dart';
 import '../screens/rentals/list_rental_screen.dart';
 import '../screens/profile/profile_screen.dart';
@@ -88,6 +90,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/profile',
             builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/my-gigs',
+            builder: (context, state) => const MyGigsScreen(),
+          ),
+          GoRoute(
+            path: '/my-rentals',
+            builder: (context, state) => const MyRentalsScreen(),
           ),
         ],
       ),
