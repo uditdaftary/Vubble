@@ -96,6 +96,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/notifications',
             builder: (context, state) => const NotificationsScreen(),
+          ),
+          GoRoute(
             path: '/my-gigs',
             builder: (context, state) => const MyGigsScreen(),
           ),
