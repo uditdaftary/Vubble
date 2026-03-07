@@ -24,26 +24,40 @@ import '../screens/admin/user_management_screen.dart';
 import '../screens/admin/reports_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final authState    = ref.watch(authStateProvider);
+  final profileState = ref.watch(currentUserProfileProvider);
 
   return GoRouter(
     initialLocation: '/login',
     redirect: (context, state) {
-      final isLoggedIn = authState.valueOrNull != null;
+      final isLoggedIn     = authState.valueOrNull != null;
+      final profile        = profileState.valueOrNull;
+      final profileLoading = profileState.isLoading;
+      final loc            = state.matchedLocation;
+
       final isOnAuthPage =
-          state.matchedLocation.startsWith('/login') ||
-          state.matchedLocation.startsWith('/register') ||
-          state.matchedLocation.startsWith('/verify-email') ||
-          state.matchedLocation.startsWith('/setup-profile') ||
-          state.matchedLocation.startsWith('/forgot-password');
+          loc.startsWith('/login') ||
+          loc.startsWith('/register') ||
+          loc.startsWith('/verify-email') ||
+          loc.startsWith('/setup-profile') ||
+          loc.startsWith('/forgot-password');
 
       // Not logged in → send to login
       if (!isLoggedIn && !isOnAuthPage) return '/login';
 
-      // Logged in but on login/register → send to dashboard
-      if (isLoggedIn &&
-          (state.matchedLocation == '/login' ||
-              state.matchedLocation == '/register')) {
+      // Logged in but profile still loading → stay put to avoid flicker
+      if (isLoggedIn && profileLoading) return null;
+
+      // Logged in but no Firestore profile yet → must complete setup
+      if (isLoggedIn && profile == null && !isOnAuthPage) {
+        return '/setup-profile';
+      }
+
+      // Logged in with profile, on login/register/setup → go to app
+      if (isLoggedIn && profile != null &&
+          (loc == '/login' ||
+           loc == '/register' ||
+           loc == '/setup-profile')) {
         return '/dashboard';
       }
 
@@ -51,76 +65,31 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       // ── Auth ──────────────────────────────────
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(
-        path: '/register',
-        builder: (context, state) => const RegisterScreen(),
-      ),
-      GoRoute(
-        path: '/verify-email',
-        builder: (context, state) => const VerifyEmailScreen(),
-      ),
-      GoRoute(
-        path: '/setup-profile',
-        builder: (context, state) => const SetupProfileScreen(),
-      ),
+      GoRoute(path: '/login',        builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/register',     builder: (_, __) => const RegisterScreen()),
+      GoRoute(path: '/verify-email', builder: (_, __) => const VerifyEmailScreen()),
+      GoRoute(path: '/setup-profile',builder: (_, __) => const SetupProfileScreen()),
 
       // ── Main app (shell with bottom nav) ──────
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
-          GoRoute(
-            path: '/dashboard',
-            builder: (context, state) => const DashboardScreen(),
-          ),
-          GoRoute(
-            path: '/gigs',
-            builder: (context, state) => const GigBrowseScreen(),
-          ),
-          GoRoute(
-            path: '/gigs/post',
-            builder: (context, state) => const PostGigScreen(),
-          ),
-          GoRoute(
-            path: '/rentals',
-            builder: (context, state) => const RentalBrowseScreen(),
-          ),
-          GoRoute(
-            path: '/rentals/list',
-            builder: (context, state) => const ListRentalScreen(),
-          ),
-          GoRoute(
-            path: '/profile',
-            builder: (context, state) => const ProfileScreen(),
-          ),
-          GoRoute(
-            path: '/notifications',
-            builder: (context, state) => const NotificationsScreen(),
-          ),
-          GoRoute(
-            path: '/my-gigs',
-            builder: (context, state) => const MyGigsScreen(),
-          ),
-          GoRoute(
-            path: '/my-rentals',
-            builder: (context, state) => const MyRentalsScreen(),
-          ),
+          GoRoute(path: '/dashboard',    builder: (_, __) => const DashboardScreen()),
+          GoRoute(path: '/gigs',         builder: (_, __) => const GigBrowseScreen()),
+          GoRoute(path: '/gigs/post',    builder: (_, __) => const PostGigScreen()),
+          GoRoute(path: '/rentals',      builder: (_, __) => const RentalBrowseScreen()),
+          GoRoute(path: '/rentals/list', builder: (_, __) => const ListRentalScreen()),
+          GoRoute(path: '/profile',      builder: (_, __) => const ProfileScreen()),
+          GoRoute(path: '/notifications',builder: (_, __) => const NotificationsScreen()),
+          GoRoute(path: '/my-gigs',      builder: (_, __) => const MyGigsScreen()),
+          GoRoute(path: '/my-rentals',   builder: (_, __) => const MyRentalsScreen()),
         ],
       ),
 
       // ── Admin (no bottom nav) ────────────────
-      GoRoute(
-        path: '/admin',
-        builder: (context, state) => const AdminDashboardScreen(),
-      ),
-      GoRoute(
-        path: '/admin/users',
-        builder: (context, state) => const UserManagementScreen(),
-      ),
-      GoRoute(
-        path: '/admin/reports',
-        builder: (context, state) => const ReportsScreen(),
-      ),
+      GoRoute(path: '/admin',         builder: (_, __) => const AdminDashboardScreen()),
+      GoRoute(path: '/admin/users',   builder: (_, __) => const UserManagementScreen()),
+      GoRoute(path: '/admin/reports', builder: (_, __) => const ReportsScreen()),
     ],
   );
 });
@@ -133,14 +102,10 @@ class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
   static const _tabs = [
-    _TabItem(path: '/dashboard', icon: Icons.home_rounded, label: 'Home'),
-    _TabItem(path: '/gigs', icon: Icons.flash_on_rounded, label: 'Gigs'),
-    _TabItem(
-      path: '/rentals',
-      icon: Icons.inventory_2_rounded,
-      label: 'Rentals',
-    ),
-    _TabItem(path: '/profile', icon: Icons.person_rounded, label: 'Profile'),
+    _TabItem(path: '/dashboard', icon: Icons.home_rounded,       label: 'Home'),
+    _TabItem(path: '/gigs',      icon: Icons.flash_on_rounded,   label: 'Gigs'),
+    _TabItem(path: '/rentals',   icon: Icons.inventory_2_rounded, label: 'Rentals'),
+    _TabItem(path: '/profile',   icon: Icons.person_rounded,     label: 'Profile'),
   ];
 
   int _currentIndex(BuildContext context) {

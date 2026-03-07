@@ -69,7 +69,6 @@ class _SetupProfileScreenState extends ConsumerState<SetupProfileScreen>
         verificationStatus: VerificationStatus.verified,
         createdAt:          DateTime.now(),
       );
-
       await authService.createUserProfile(user);
       if (mounted) context.go('/dashboard');
     } catch (e) {

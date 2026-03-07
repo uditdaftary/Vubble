@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -13,17 +14,28 @@ final authStateProvider = StreamProvider<User?>((ref) {
   return ref.watch(authServiceProvider).authStateChanges;
 });
 
-// ── Logged-in user's Firestore profile ────────────────────────────────────────
+// ── Logged-in user's Firestore profile (live stream) ─────────────────────────
+// Watches the Firestore document in real time so any update
+// (profile setup, rating change, suspension) is reflected immediately.
 
-final currentUserProfileProvider = FutureProvider<UserModel?>((ref) async {
+final currentUserProfileProvider = StreamProvider<UserModel?>((ref) {
   final authState = ref.watch(authStateProvider);
+
   return authState.when(
-    data: (user) async {
-      if (user == null) return null;
-      return ref.read(authServiceProvider).getUserProfile(user.uid);
+    loading: () => const Stream.empty(),
+    error:   (_, __) => const Stream.empty(),
+    data: (user) {
+      if (user == null) return Stream.value(null);
+
+      return FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .map((doc) {
+            if (!doc.exists) return null;
+            return UserModel.fromFirestore(doc);
+          });
     },
-    loading: () => null,
-    error: (_, _) => null,
   );
 });
 
@@ -42,13 +54,13 @@ class AuthState {
 
   AuthState copyWith({AuthStatus? status, String? errorMessage}) {
     return AuthState(
-      status: status ?? this.status,
+      status:       status       ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 
   bool get isLoading => status == AuthStatus.loading;
-  bool get hasError => status == AuthStatus.error;
+  bool get hasError  => status == AuthStatus.error;
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
@@ -72,13 +84,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return false;
     } on FirebaseAuthException catch (e) {
       state = state.copyWith(
-        status: AuthStatus.error,
+        status:       AuthStatus.error,
         errorMessage: parseFirebaseAuthError(e.code),
       );
       return false;
     } catch (_) {
       state = state.copyWith(
-        status: AuthStatus.error,
+        status:       AuthStatus.error,
         errorMessage: 'Something went wrong. Please try again.',
       );
       return false;
@@ -98,13 +110,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return true;
     } on FirebaseAuthException catch (e) {
       state = state.copyWith(
-        status: AuthStatus.error,
+        status:       AuthStatus.error,
         errorMessage: parseFirebaseAuthError(e.code),
       );
       return false;
     } catch (_) {
       state = state.copyWith(
-        status: AuthStatus.error,
+        status:       AuthStatus.error,
         errorMessage: 'Something went wrong. Please try again.',
       );
       return false;
