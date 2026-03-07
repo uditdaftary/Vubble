@@ -114,14 +114,6 @@ class RentalService {
     await _db.collection('users').doc(renterId).update({
       'activeRentalIds': FieldValue.arrayUnion([rentalId]),
     });
-
-    await _sendNotification(
-      toUserId: rental.ownerId,
-      type:     'rental_requested',
-      title:    'Rental Request!',
-      body:     '$renterName wants to rent your ${rental.itemName}.',
-      targetId: rentalId,
-    );
   }
 
   /// Owner approves the rental request
@@ -133,14 +125,6 @@ class RentalService {
       'status':     RentalStatus.active.firestoreValue,
       'approvedAt': Timestamp.fromDate(DateTime.now()),
     });
-
-    await _sendNotification(
-      toUserId: rental.renterId!,
-      type:     'rental_approved',
-      title:    'Rental Approved!',
-      body:     '${rental.ownerName} approved your request for ${rental.itemName}.',
-      targetId: rentalId,
-    );
   }
 
   /// Owner rejects the rental request → item goes back to available
@@ -161,15 +145,7 @@ class RentalService {
       await _db.collection('users').doc(rental.renterId!).update({
         'activeRentalIds': FieldValue.arrayRemove([rentalId]),
       });
-
-      await _sendNotification(
-        toUserId: rental.renterId!,
-        type:     'rental_rejected',
-        title:    'Rental Request Declined',
-        body:     '${rental.ownerName} declined your request for ${rental.itemName}.',
-        targetId: rentalId,
-      );
-    }
+  }
   }
 
   /// Renter marks the item as returned
@@ -181,14 +157,6 @@ class RentalService {
       'status':            RentalStatus.returnPending.firestoreValue,
       'returnRequestedAt': Timestamp.fromDate(DateTime.now()),
     });
-
-    await _sendNotification(
-      toUserId: rental.ownerId,
-      type:     'return_pending',
-      title:    'Item Return Initiated',
-      body:     '${rental.renterName} has marked ${rental.itemName} as returned. Please confirm.',
-      targetId: rentalId,
-    );
   }
 
   /// Owner confirms they received the item back
@@ -214,14 +182,6 @@ class RentalService {
       'completedRentals':   FieldValue.increment(1),
     });
     await batch.commit();
-
-    await _sendNotification(
-      toUserId: rental.renterId!,
-      type:     'rental_completed',
-      title:    'Return Confirmed!',
-      body:     '${rental.ownerName} confirmed return of ${rental.itemName}.',
-      targetId: rentalId,
-    );
   }
 
   /// Raise a dispute (either party)
@@ -265,30 +225,5 @@ class RentalService {
   /// Flag rental as rated by renter
   Future<void> markRenterRated(String rentalId) async {
     await _rentals.doc(rentalId).update({'renterRated': true});
-  }
-
-  // ── Internal helpers ──────────────────────────────────────────────────────
-
-  Future<void> _sendNotification({
-    required String toUserId,
-    required String type,
-    required String title,
-    required String body,
-    String? targetId,
-  }) async {
-    final ref = _db
-      .collection('notifications')
-      .doc(toUserId)
-      .collection('items')
-      .doc();
-    await ref.set({
-      'id':        ref.id,
-      'type':      type,
-      'title':     title,
-      'body':      body,
-      'targetId':  targetId,
-      'isRead':    false,
-      'createdAt': Timestamp.fromDate(DateTime.now()),
-    });
   }
 }

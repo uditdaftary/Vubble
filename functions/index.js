@@ -2,34 +2,44 @@ const admin = require("firebase-admin");
 const { getFirestore } = require("firebase-admin/firestore");
 const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { beforeUserCreated } = require("firebase-functions/v2/identity");
 
 admin.initializeApp();
-const db = getFirestore("default");
 
 // ─────────────────────────────────────────
 // 1. onUserCreated
 // Trigger: new Auth user registered
 // Action: creates their Firestore user doc
 // ─────────────────────────────────────────
-exports.onUserCreated = beforeUserCreated(async (event) => {
-    const user = event.data;
+/* exports.onUserCreated = functionsV1.auth.user().onCreate(async (user) => {
     await db.collection("users").doc(user.uid).set({
-        name: "",
-        email: user.email,
-        department: "",
-        bio: "",
-        skills: [],
-        rating: 0,
-        completedGigs: 0,
-        completedRentals: 0,
-        cancellationCount: 0,
-        reportCount: 0,
-        isVerified: false,
-        isSuspended: false,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        userId:             user.uid,
+        name:               "",
+        email:              user.email ?? "",
+        department:         "",
+        registrationNumber: "",
+        bio:                "",
+        profilePhotoUrl:    "",
+        rating:             0,
+        totalRatings:       0,
+        completedGigs:      0,
+        completedRentals:   0,
+        cancellations:      0,
+        reportCount:        0,
+        role:               "student",
+        verificationStatus: "unverified",
+        isSuspended:        false,
+        isBanned:           false,
+        activeGigIds:       [],
+        activeRentalIds:    [],
+        createdAt:          admin.firestore.FieldValue.serverTimestamp(),
+        lastActiveAt:       null,
     });
 });
+
+removed because don't need it. 
+the SetupProfileScreen already creates the user document in Firestore 
+when the user completes profile setup. The Cloud Function was a redundant safety net.
+*/
 
 // ─────────────────────────────────────────
 // 2. onGigStatusChange
@@ -37,7 +47,7 @@ exports.onUserCreated = beforeUserCreated(async (event) => {
 // Action: sends notification based on new status
 // ─────────────────────────────────────────
 exports.onGigStatusChange = onDocumentUpdated(
-    { document: "gigs/{gigId}", database: "default" },
+    { document: "gigs/{gigId}", database: "(default)", region: "asia-south1" },
     async (event) => {
         const before = event.data.before.data();
         const after = event.data.after.data();
@@ -49,40 +59,50 @@ exports.onGigStatusChange = onDocumentUpdated(
         let title = "";
         let body = "";
 
-        if (after.status === "ACCEPTED") {
-            targetUserId = after.createdBy;
-            title = "Gig Accepted";
-            body = `Your gig "${after.title}" has been accepted.`;
-        } else if (after.status === "IN_PROGRESS") {
-            targetUserId = after.createdBy;
-            title = "Gig Started";
-            body = `Work has started on your gig "${after.title}".`;
-        } else if (after.status === "COMPLETED_PENDING_REVIEW") {
-            targetUserId = after.createdBy;
-            title = "Gig Completed";
-            body = `"${after.title}" is marked complete. Please review.`;
-        } else if (after.status === "CLOSED") {
-            targetUserId = after.acceptedBy;
-            title = "Gig Closed";
-            body = `Gig "${after.title}" has been closed. Check your rating.`;
-        } else if (after.status === "CANCELLED") {
-            targetUserId = after.acceptedBy || after.createdBy;
-            title = "Gig Cancelled";
-            body = `Gig "${after.title}" has been cancelled.`;
+        switch (after.status) {
+            case "accepted":
+                targetUserId = after.creatorId;
+                title = "Gig Accepted";
+                body = `Your gig "${after.title}" has been accepted.`;
+                break;
+            case "inProgress":
+                targetUserId = after.creatorId;
+                title = "Gig Started";
+                body = `Work has started on your gig "${after.title}".`;
+                break;
+            case "completedPendingReview":
+                targetUserId = after.creatorId;
+                title = "Gig Completed";
+                body = `"${after.title}" is marked complete. Please review.`;
+                break;
+            case "closed":
+                targetUserId = after.acceptedById;
+                title = "Gig Closed";
+                body = `Gig "${after.title}" has been closed. Check your rating.`;
+                break;
+            case "cancelled":
+                targetUserId = after.acceptedById ?? after.creatorId;
+                title = "Gig Cancelled";
+                body = `Gig "${after.title}" has been cancelled.`;
+                break;
         }
 
         if (!targetUserId) return null;
 
-        return db.collection("notifications").add({
-            userId: targetUserId,
-            title,
-            body,
-            type: `GIG_${after.status}`,
-            refId: gigId,
-            isRead: false,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-    });
+        return db
+            .collection("notifications")
+            .doc(targetUserId)
+            .collection("items")
+            .add({
+                type: `gig_${after.status}`,
+                title,
+                body,
+                targetId: gigId,
+                isRead: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+    }
+);
 
 // ─────────────────────────────────────────
 // 3. onRentalStatusChange
@@ -90,7 +110,7 @@ exports.onGigStatusChange = onDocumentUpdated(
 // Action: sends notification based on new status
 // ─────────────────────────────────────────
 exports.onRentalStatusChange = onDocumentUpdated(
-    { document: "rentals/{rentalId}", database: "default" },
+    { document: "rentals/{rentalId}", database: "(default)", region: "asia-south1" },
     async (event) => {
         const before = event.data.before.data();
         const after = event.data.after.data();
@@ -102,44 +122,55 @@ exports.onRentalStatusChange = onDocumentUpdated(
         let title = "";
         let body = "";
 
-        if (after.status === "REQUESTED") {
-            targetUserId = after.ownerId;
-            title = "Rental Requested";
-            body = `Someone has requested to rent your item "${after.itemName}".`;
-        } else if (after.status === "ACTIVE") {
-            targetUserId = after.renterId;
-            title = "Rental Approved";
-            body = `Your rental request for "${after.itemName}" was approved.`;
-        } else if (after.status === "RETURN_PENDING") {
-            targetUserId = after.ownerId;
-            title = "Return Initiated";
-            body = `"${after.itemName}" is being returned. Please confirm.`;
-        } else if (after.status === "COMPLETED") {
-            targetUserId = after.renterId;
-            title = "Rental Completed";
-            body = `Your rental of "${after.itemName}" is complete. Leave a rating.`;
-        } else if (after.status === "CANCELLED") {
-            targetUserId = after.ownerId;
-            title = "Rental Cancelled";
-            body = `Rental for "${after.itemName}" has been cancelled.`;
-        } else if (after.status === "DISPUTED") {
-            targetUserId = after.ownerId;
-            title = "Dispute Raised";
-            body = `A dispute was raised on rental "${after.itemName}".`;
+        switch (after.status) {
+            case "requested":
+                targetUserId = after.ownerId;
+                title = "Rental Requested";
+                body = `Someone wants to rent your "${after.itemName}".`;
+                break;
+            case "active":
+                targetUserId = after.renterId;
+                title = "Rental Approved";
+                body = `Your rental request for "${after.itemName}" was approved.`;
+                break;
+            case "returnPending":
+                targetUserId = after.ownerId;
+                title = "Return Initiated";
+                body = `"${after.itemName}" is being returned. Please confirm.`;
+                break;
+            case "completed":
+                targetUserId = after.renterId;
+                title = "Rental Completed";
+                body = `Your rental of "${after.itemName}" is complete. Leave a rating.`;
+                break;
+            case "cancelled":
+                targetUserId = after.ownerId;
+                title = "Rental Cancelled";
+                body = `Rental for "${after.itemName}" has been cancelled.`;
+                break;
+            case "disputed":
+                targetUserId = after.ownerId;
+                title = "Dispute Raised";
+                body = `A dispute was raised on "${after.itemName}".`;
+                break;
         }
 
         if (!targetUserId) return null;
 
-        return db.collection("notifications").add({
-            userId: targetUserId,
-            title,
-            body,
-            type: `RENTAL_${after.status}`,
-            refId: rentalId,
-            isRead: false,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-    });
+        return db
+            .collection("notifications")
+            .doc(targetUserId)
+            .collection("items")
+            .add({
+                type: `rental_${after.status}`,
+                title,
+                body,
+                targetId: rentalId,
+                isRead: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+    }
+);
 
 // ─────────────────────────────────────────
 // 4. onRatingCreated
@@ -147,31 +178,33 @@ exports.onRentalStatusChange = onDocumentUpdated(
 // Action: recalculates target user's average rating
 // ─────────────────────────────────────────
 exports.onRatingCreated = onDocumentCreated(
-    { document: "ratings/{ratingId}", database: "default" },
+    { document: "reviews/{reviewId}", database: "(default)", region: "asia-south1" },
     async (event) => {
-        const rating = event.data.data();
-        const targetUserId = rating.toUserId;
+        const review = event.data.data();
+        const targetUserId = review.targetId;
 
-        const ratingsSnap = await db
-            .collection("ratings")
-            .where("toUserId", "==", targetUserId)
+        const snap = await db
+            .collection("reviews")
+            .where("targetId", "==", targetUserId)
             .get();
 
-        const total = ratingsSnap.docs.reduce((sum, doc) => sum + doc.data().stars, 0);
-        const average = total / ratingsSnap.docs.length;
+        const total = snap.docs.reduce((sum, doc) => sum + doc.data().rating, 0);
+        const average = total / snap.docs.length;
 
         return db.collection("users").doc(targetUserId).update({
             rating: Math.round(average * 10) / 10,
+            totalRatings: snap.docs.length,
         });
-    });
+    }
+);
 
 // ─────────────────────────────────────────
 // 5. onReportCreated
 // Trigger: new report document created
-// Action: increments reportCount, auto-flags at threshold
+// Action: increments reportCount, auto-suspends at 5
 // ─────────────────────────────────────────
 exports.onReportCreated = onDocumentCreated(
-    { document: "reports/{reportId}", database: "default" },
+    { document: "reports/{reportId}", database: "(default)", region: "asia-south1" },
     async (event) => {
         const report = event.data.data();
 
@@ -190,27 +223,32 @@ exports.onReportCreated = onDocumentCreated(
         }
 
         return userRef.update(update);
-    });
+    }
+);
 
 // ─────────────────────────────────────────
 // 6. onGigDeadlineExpiry
-// Trigger: runs every day at midnight
-// Action: auto-cancels OPEN gigs past their deadline
+// Trigger: runs every day at midnight IST
+// Action: auto-cancels OPEN gigs past deadline
 // ─────────────────────────────────────────
-exports.onGigDeadlineExpiry = onSchedule("every 24 hours", async () => {
-    const now = admin.firestore.Timestamp.now();
+exports.onGigDeadlineExpiry = onSchedule(
+    { schedule: "every 24 hours", region: "asia-south1" },
+    async () => {
+        const now = admin.firestore.Timestamp.now();
 
-    const expiredGigs = await db
-        .collection("gigs")
-        .where("status", "==", "OPEN")
-        .where("deadline", "<", now)
-        .get();
+        const expiredGigs = await db
+            .collection("gigs")
+            .where("status", "==", "open")
+            .where("deadline", "<", now)
+            .get();
 
-    const batch = db.batch();
+        if (expiredGigs.empty) return;
 
-    expiredGigs.docs.forEach((doc) => {
-        batch.update(doc.ref, { status: "CANCELLED" });
-    });
+        const batch = db.batch();
+        expiredGigs.docs.forEach((doc) => {
+            batch.update(doc.ref, { status: "cancelled" });
+        });
 
-    return batch.commit();
-});
+        return batch.commit();
+    }
+);

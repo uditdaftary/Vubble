@@ -23,7 +23,7 @@
     }
   },
   "firestore": {
-    "database": "default"
+    "database": "(default)"
   },
   "functions": [
     {

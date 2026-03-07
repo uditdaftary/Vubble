@@ -104,14 +104,6 @@ class GigService {
     await _db.collection('users').doc(executorId).update({
       'activeGigIds': FieldValue.arrayUnion([gigId]),
     });
-
-    await _sendNotification(
-      toUserId: await _getCreatorId(gigId),
-      type:     'gig_accepted',
-      title:    'Gig Accepted!',
-      body:     '$executorName accepted your gig.',
-      targetId: gigId,
-    );
   }
 
   /// Executor marks gig as started
@@ -131,14 +123,6 @@ class GigService {
       'status':      GigStatus.completedPendingReview.firestoreValue,
       'completedAt': Timestamp.fromDate(DateTime.now()),
     });
-
-    await _sendNotification(
-      toUserId: gig.creatorId,
-      type:     'gig_completed',
-      title:    'Gig marked complete!',
-      body:     '${gig.acceptedByName} has marked your gig as done. Please review.',
-      targetId: gigId,
-    );
   }
 
   /// Creator closes the gig after review
@@ -211,35 +195,5 @@ class GigService {
       'createdAt':  Timestamp.fromDate(DateTime.now()),
     });
     await batch.commit();
-  }
-
-  // ── Internal helpers ──────────────────────────────────────────────────────
-
-  Future<String> _getCreatorId(String gigId) async {
-    final doc = await _gigs.doc(gigId).get();
-    return (doc.data() as Map<String, dynamic>)['creatorId'] ?? '';
-  }
-
-  Future<void> _sendNotification({
-    required String toUserId,
-    required String type,
-    required String title,
-    required String body,
-    String? targetId,
-  }) async {
-    final ref = _db
-      .collection('notifications')
-      .doc(toUserId)
-      .collection('items')
-      .doc();
-    await ref.set({
-      'id':        ref.id,
-      'type':      type,
-      'title':     title,
-      'body':      body,
-      'targetId':  targetId,
-      'isRead':    false,
-      'createdAt': Timestamp.fromDate(DateTime.now()),
-    });
   }
 }

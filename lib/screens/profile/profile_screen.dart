@@ -1,51 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../theme/app_theme.dart';
-
+import 'package:go_router/go_router.dart';
+import '../../models/gig_model.dart';
+import '../../models/rental_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/gig_rental_providers.dart';
+import '../../theme/app_theme.dart' hide GigCategory, RentalCategory;
 
 // ─────────────────────────────────────────────
 //  PROFILE SCREEN
 // ─────────────────────────────────────────────
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen>
+class _ProfileScreenState extends ConsumerState<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
-
-  // ── mock data ────────────────────────────────
-  static const _profile = (
-    name:              'Alex Kumar',
-    dept:              'Computer Science · 3rd Year',
-    email:             'alex.kumar@univ.edu',
-    bio:               'Flutter dev | Calculus tutor | Always up for a good side gig 🚀',
-    registrationNumber:'CS21B042',
-    rating:            4.8,
-    totalReviews:      47,
-    gigsCompleted:     31,
-    rentalsCompleted:  16,
-    earnings:          '₹14,350',
-    cancelRate:        '2%',
-    initial:           'A',
-    joinedYear:        '2023',
-  );
-
-  final _reviews = const [
-    _ReviewData(reviewer: 'Rahul K.',  rating: 5, text: 'Super fast delivery — dropped it exactly on time. Highly recommend!', type: 'Gig',    ago: '2 days ago'),
-    _ReviewData(reviewer: 'Meena R.',  rating: 5, text: 'Alex tutored me for my calc exam. Explained derivatives so clearly! Got an A.',    type: 'Gig',    ago: '1 week ago'),
-    _ReviewData(reviewer: 'Siya T.',   rating: 4, text: 'Good experience renting the DSLR. Returned clean and on time.',                   type: 'Rental', ago: '2 weeks ago'),
-    _ReviewData(reviewer: 'Dev P.',    rating: 5, text: 'Wrote the blog exactly as asked. APA citations were perfect too.',                 type: 'Gig',    ago: '3 weeks ago'),
-    _ReviewData(reviewer: 'Priya S.', rating: 4, text: 'Decent tutoring. Could have been more patient during explanations.',               type: 'Gig',    ago: '1 month ago'),
-  ];
-
-  final _activeListings = const [
-    _ListingData(title: 'Canon EOS 1500D DSLR',   type: 'Rental', status: 'AVAILABLE',    badge: '📷', rate: '₹200/day'),
-    _ListingData(title: 'Build Login UI in Flutter', type: 'Gig',  status: 'OPEN',         badge: '💻', rate: '₹500'),
-    _ListingData(title: 'Calculus Exam Prep',        type: 'Gig',  status: 'IN PROGRESS',  badge: '📚', rate: '₹300'),
-  ];
 
   @override
   void initState() {
@@ -55,145 +29,292 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   @override
-  void dispose() { _tabs.dispose(); super.dispose(); }
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppColors.bg,
-    body: NestedScrollView(
-      headerSliverBuilder: (_, __) => [
-        _profileHeader(),
-        _statsRow(),
-        _tabBar(),
-      ],
-      body: TabBarView(
-        controller: _tabs,
-        children: [_reviewsTab(), _listingsTab(), _activityTab()],
-      ),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final userAsync = ref.watch(currentUserProfileProvider);
 
-  // ── profile header ────────────────────────────
-  Widget _profileHeader() => SliverToBoxAdapter(
-    child: Stack(children: [
-      // gradient banner
-      Container(
-        height: 160,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF180840), Color(0xFF0A1840)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: userAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.violet,
+            strokeWidth: 2,
           ),
         ),
-      ),
-      // action buttons
-      Positioned(top: 52, right: 16, child: Row(children: [
-        _IconBtn(icon: Icons.share_rounded,    onTap: () {}),
-        const SizedBox(width: 8),
-        _IconBtn(icon: Icons.settings_rounded, onTap: () {}),
-      ])),
-      // avatar + info
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 100, 20, 0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            // avatar
-            Container(
-              width: 76, height: 76,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [AppColors.violet, AppColors.cyan],
-                  begin: Alignment.topLeft, end: Alignment.bottomRight,
-                ),
+        error: (e, _) => Center(
+          child: Text('Error: $e', style: AppText.body(color: AppColors.coral)),
+        ),
+        data: (user) {
+          if (user == null) {
+            return Center(
+              child: Text(
+                'Not logged in',
+                style: AppText.body(color: AppColors.coral),
               ),
-              child: Center(
-                child: Text(_profile.initial,
-                  style: GoogleFonts.syne(fontSize: 30, fontWeight: FontWeight.w800, color: Colors.white)),
-              ),
+            );
+          }
+          return NestedScrollView(
+            headerSliverBuilder: (_, __) => [
+              _profileHeader(user),
+              _statsRow(user),
+              _tabBar(),
+            ],
+            body: TabBarView(
+              controller: _tabs,
+              children: [_reviewsTab(user), _listingsTab(), _activityTab()],
             ),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const SizedBox(height: 40),
-              Row(children: [
-                Text(_profile.name, style: AppText.heading(size: 20)),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.violet.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(6),
+          );
+        },
+      ),
+    );
+  }
+
+  // ── profile header ────────────────────────────
+  Widget _profileHeader(user) => SliverToBoxAdapter(
+    child: Stack(
+      children: [
+        // gradient banner
+        Container(
+          height: 160,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF180840), Color(0xFF0A1840)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        // action buttons
+        Positioned(
+          top: 52,
+          right: 16,
+          child: Row(
+            children: [
+              _IconBtn(icon: Icons.share_rounded, onTap: () {}),
+              const SizedBox(width: 8),
+              _IconBtn(icon: Icons.settings_rounded, onTap: () {}),
+            ],
+          ),
+        ),
+        // avatar + info
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 100, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // avatar
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [AppColors.violet, AppColors.cyan],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                        style: GoogleFonts.syne(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
-                  child: Text('✓ Verified', style: AppText.label(size: 10, color: AppColors.violet)),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 40),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                user.name,
+                                style: AppText.heading(size: 20),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            if (user.isVerified)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.violet.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '✓ Verified',
+                                  style: AppText.label(
+                                    size: 10,
+                                    color: AppColors.violet,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          user.department,
+                          style: AppText.body(
+                            size: 13,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // bio
+              if (user.bio.isNotEmpty)
+                Text(
+                  user.bio,
+                  style: AppText.body(
+                    size: 14,
+                    color: AppColors.textMuted,
+                  ).copyWith(height: 1.4),
                 ),
-              ]),
-              const SizedBox(height: 3),
-              Text(_profile.dept, style: AppText.body(size: 13, color: AppColors.textMuted)),
-            ])),
-          ]),
-          const SizedBox(height: 14),
-          // bio
-          Text(_profile.bio,
-            style: AppText.body(size: 14, color: AppColors.textMuted).copyWith(height: 1.4)),
-          const SizedBox(height: 12),
-          // ── registration number (replaces skills chips) ──
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.cyan.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.cyan.withOpacity(0.3)),
+              if (user.bio.isNotEmpty) const SizedBox(height: 12),
+              // registration number + email
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  if (user.registrationNumber.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.cyan.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.cyan.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.badge_outlined,
+                            size: 14,
+                            color: AppColors.cyan,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            user.registrationNumber,
+                            style: GoogleFonts.syne(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.cyan,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceHigh,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.alternate_email_rounded,
+                          size: 13,
+                          color: AppColors.textMuted,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          user.email,
+                          style: AppText.body(
+                            size: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.badge_outlined, size: 14, color: AppColors.cyan),
-                const SizedBox(width: 6),
-                Text(_profile.registrationNumber,
-                  style: GoogleFonts.syne(
-                    fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.cyan,
-                    letterSpacing: 1.2,
-                  )),
-              ]),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceHigh,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.alternate_email_rounded, size: 13, color: AppColors.textMuted),
-                const SizedBox(width: 5),
-                Text(_profile.email,
-                  style: AppText.body(size: 12, color: AppColors.textMuted)),
-              ]),
-            ),
-          ]),
-          const SizedBox(height: 20),
-        ]),
-      ),
-    ]),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ],
+    ),
   );
 
   // ── stats row ─────────────────────────────────
-  Widget _statsRow() => SliverToBoxAdapter(
+  Widget _statsRow(user) => SliverToBoxAdapter(
     child: Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      child: Row(children: [
-        Expanded(child: _StatBlock(value: '${_profile.rating}★', label: 'Rating',    color: AppColors.amber)),
-        _vDivider(),
-        Expanded(child: _StatBlock(value: '${_profile.totalReviews}',     label: 'Reviews',    color: AppColors.violet)),
-        _vDivider(),
-        Expanded(child: _StatBlock(value: '${_profile.gigsCompleted}',    label: 'Gigs Done',  color: AppColors.lime)),
-        _vDivider(),
-        Expanded(child: _StatBlock(value: '${_profile.rentalsCompleted}', label: 'Rentals',    color: AppColors.cyan)),
-      ]),
+      child: Row(
+        children: [
+          Expanded(
+            child: _StatBlock(
+              value: '${user.rating}★',
+              label: 'Rating',
+              color: AppColors.amber,
+            ),
+          ),
+          _vDivider(),
+          Expanded(
+            child: _StatBlock(
+              value: '${user.totalRatings}',
+              label: 'Reviews',
+              color: AppColors.violet,
+            ),
+          ),
+          _vDivider(),
+          Expanded(
+            child: _StatBlock(
+              value: '${user.completedGigs}',
+              label: 'Gigs Done',
+              color: AppColors.lime,
+            ),
+          ),
+          _vDivider(),
+          Expanded(
+            child: _StatBlock(
+              value: '${user.completedRentals}',
+              label: 'Rentals',
+              color: AppColors.cyan,
+            ),
+          ),
+        ],
+      ),
     ),
   );
 
-  Widget _vDivider() => Container(width: 1, height: 36, color: AppColors.border);
+  Widget _vDivider() =>
+      Container(width: 1, height: 36, color: AppColors.border);
 
   // ── tab bar ───────────────────────────────────
   Widget _tabBar() => SliverPersistentHeader(
@@ -207,93 +328,318 @@ class _ProfileScreenState extends State<ProfileScreen>
         unselectedLabelColor: AppColors.textMuted,
         labelStyle: GoogleFonts.syne(fontSize: 13, fontWeight: FontWeight.w700),
         unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 13),
-        tabs: const [Tab(text: 'Reviews'), Tab(text: 'Listings'), Tab(text: 'Activity')],
+        tabs: const [
+          Tab(text: 'Reviews'),
+          Tab(text: 'Listings'),
+          Tab(text: 'Activity'),
+        ],
       ),
     ),
   );
 
   // ── reviews tab ───────────────────────────────
-  Widget _reviewsTab() => ListView(
+  Widget _reviewsTab(user) => ListView(
     padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
     children: [
-      _ratingBreakdown(),
+      _ratingBreakdown(user),
       const SizedBox(height: 20),
-      ..._reviews.map((r) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: _ReviewCard(data: r),
-      )),
-    ],
-  );
-
-  Widget _ratingBreakdown() => SurfaceCard(
-    child: Column(children: [
-      Row(children: [
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('${_profile.rating}',
-            style: GoogleFonts.syne(fontSize: 48, fontWeight: FontWeight.w800, color: AppColors.amber)),
-          Text('out of 5.0', style: AppText.body(size: 13, color: AppColors.textMuted)),
-          const SizedBox(height: 4),
-          Text('Based on ${_profile.totalReviews} reviews',
-            style: AppText.body(size: 12, color: AppColors.textMuted)),
-        ]),
-        const SizedBox(width: 20),
-        Expanded(child: Column(children: [
-          _RatingBar(stars: 5, count: 31, total: _profile.totalReviews),
-          _RatingBar(stars: 4, count: 12, total: _profile.totalReviews),
-          _RatingBar(stars: 3, count: 3,  total: _profile.totalReviews),
-          _RatingBar(stars: 2, count: 1,  total: _profile.totalReviews),
-          _RatingBar(stars: 1, count: 0,  total: _profile.totalReviews),
-        ])),
-      ]),
-      const SizedBox(height: 16),
-      Divider(color: AppColors.border),
-      const SizedBox(height: 12),
-      Row(children: [
-        Expanded(child: _MiniStat(emoji: '💰', label: 'Total Earned',  value: _profile.earnings)),
-        Expanded(child: _MiniStat(emoji: '❌', label: 'Cancel Rate',   value: _profile.cancelRate)),
-        Expanded(child: _MiniStat(emoji: '📅', label: 'Member Since',  value: _profile.joinedYear)),
-      ]),
-    ]),
-  );
-
-  // ── listings tab ──────────────────────────────
-  Widget _listingsTab() => ListView(
-    padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-    children: [
-      Text('ACTIVE (${_activeListings.length})', style: AppText.label()),
-      const SizedBox(height: 12),
-      ..._activeListings.map((l) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: _ListingTile(data: l),
-      )),
-      const SizedBox(height: 20),
-      GradientButton(label: '+ Post New Gig',  width: double.infinity, onTap: () {}),
-      const SizedBox(height: 10),
-      GradientButton(
-        label: '+ List New Item',
-        width: double.infinity,
-        colors: [const Color(0xFF0099BB), AppColors.cyan],
-        onTap: () {},
+      // Empty state — reviews collection not wired yet
+      Padding(
+        padding: const EdgeInsets.only(top: 20),
+        child: Column(
+          children: [
+            const Text('📝', style: TextStyle(fontSize: 42)),
+            const SizedBox(height: 12),
+            Text('No reviews yet', style: AppText.heading(size: 16)),
+            const SizedBox(height: 6),
+            Text(
+              'Reviews from gig and rental completions will appear here.',
+              textAlign: TextAlign.center,
+              style: AppText.body(size: 13, color: AppColors.textMuted),
+            ),
+          ],
+        ),
       ),
     ],
   );
 
+  Widget _ratingBreakdown(user) => SurfaceCard(
+    child: Column(
+      children: [
+        Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${user.rating}',
+                  style: GoogleFonts.syne(
+                    fontSize: 48,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.amber,
+                  ),
+                ),
+                Text(
+                  'out of 5.0',
+                  style: AppText.body(size: 13, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Based on ${user.totalRatings} review${user.totalRatings == 1 ? '' : 's'}',
+                  style: AppText.body(size: 12, color: AppColors.textMuted),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Divider(color: AppColors.border),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _MiniStat(
+                emoji: '✅',
+                label: 'Completion',
+                value: '${user.completionRate.toStringAsFixed(0)}%',
+              ),
+            ),
+            Expanded(
+              child: _MiniStat(
+                emoji: '❌',
+                label: 'Cancellations',
+                value: '${user.cancellations}',
+              ),
+            ),
+            Expanded(
+              child: _MiniStat(
+                emoji: '📅',
+                label: 'Member Since',
+                value: '${user.createdAt.year}',
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+
+  // ── listings tab ──────────────────────────────
+  Widget _listingsTab() {
+    final gigsAsync = ref.watch(myPostedGigsProvider);
+    final rentalsAsync = ref.watch(myOwnedRentalsProvider);
+
+    return gigsAsync.when(
+      loading: () => const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.violet,
+          strokeWidth: 2,
+        ),
+      ),
+      error: (e, _) => Center(
+        child: Text('Error: $e', style: AppText.body(color: AppColors.coral)),
+      ),
+      data: (gigs) {
+        final rentals = rentalsAsync.valueOrNull ?? [];
+
+        // Active gigs
+        final activeGigs = gigs
+            .where(
+              (g) =>
+                  g.status != GigStatus.closed &&
+                  g.status != GigStatus.cancelled,
+            )
+            .toList();
+
+        // Active rentals
+        final activeRentals = rentals
+            .where(
+              (r) =>
+                  r.status != RentalStatus.completed &&
+                  r.status != RentalStatus.cancelled,
+            )
+            .toList();
+
+        final hasActive = activeGigs.isNotEmpty || activeRentals.isNotEmpty;
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+          children: [
+            if (hasActive) ...[
+              Text(
+                'ACTIVE (${activeGigs.length + activeRentals.length})',
+                style: AppText.label(),
+              ),
+              const SizedBox(height: 12),
+              ...activeGigs.map(
+                (g) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _GigListingTile(gig: g),
+                ),
+              ),
+              ...activeRentals.map(
+                (r) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _RentalListingTile(rental: r),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+            if (!hasActive)
+              Padding(
+                padding: const EdgeInsets.only(top: 40),
+                child: Column(
+                  children: [
+                    const Text('📋', style: TextStyle(fontSize: 42)),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No active listings',
+                      style: AppText.heading(size: 16),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Post a gig or list an item to get started.',
+                      textAlign: TextAlign.center,
+                      style: AppText.body(size: 13, color: AppColors.textMuted),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            GradientButton(
+              label: '+ Post New Gig',
+              width: double.infinity,
+              onTap: () => context.push('/gigs/post'),
+            ),
+            const SizedBox(height: 10),
+            GradientButton(
+              label: '+ List New Item',
+              width: double.infinity,
+              colors: [const Color(0xFF0099BB), AppColors.cyan],
+              onTap: () => context.push('/rentals/list'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   // ── activity tab ──────────────────────────────
   Widget _activityTab() {
-    final items = const [
-      _ActivityItem(emoji: '✅', title: 'Gig completed',      sub: 'Calculus Tutoring · ₹300',  time: '2 days ago',  color: AppColors.lime),
-      _ActivityItem(emoji: '📦', title: 'Rental ended',        sub: 'DSLR · 3 days · ₹600',     time: '1 week ago',  color: AppColors.cyan),
-      _ActivityItem(emoji: '⭐', title: 'Review received',     sub: '5★ from Meena R.',           time: '1 week ago',  color: AppColors.amber),
-      _ActivityItem(emoji: '✏️', title: 'Gig posted',          sub: 'Build Login UI · ₹500',     time: '2 weeks ago', color: AppColors.violet),
-      _ActivityItem(emoji: '📦', title: 'Item listed',         sub: 'Canon DSLR · ₹200/day',     time: '1 month ago', color: AppColors.cyan),
-      _ActivityItem(emoji: '🎉', title: 'Joined Vubble',       sub: 'Welcome to the ecosystem!', time: 'Aug 2023',    color: AppColors.violet),
-    ];
+    final gigsAsync = ref.watch(myPostedGigsProvider);
+    final rentalsAsync = ref.watch(myOwnedRentalsProvider);
+
+    final gigs = gigsAsync.valueOrNull ?? [];
+    final rentals = rentalsAsync.valueOrNull ?? [];
+
+    // Combine closed gigs and completed rentals as activity history
+    final activityItems = <_ActivityItem>[];
+
+    for (final g in gigs) {
+      activityItems.add(
+        _ActivityItem(
+          emoji: g.category.emoji,
+          title: '${g.status.label} — ${g.title}',
+          sub: '₹${g.price} · ${g.category.label}',
+          time: _timeAgo(g.createdAt),
+          color: _gigStatusColor(g.status),
+          createdAt: g.createdAt,
+        ),
+      );
+    }
+
+    for (final r in rentals) {
+      activityItems.add(
+        _ActivityItem(
+          emoji: r.category.emoji,
+          title: '${r.status.label} — ${r.itemName}',
+          sub: '₹${r.dailyRate}/day',
+          time: _timeAgo(r.createdAt),
+          color: _rentalStatusColor(r.status),
+          createdAt: r.createdAt,
+        ),
+      );
+    }
+
+    activityItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final displayItems = activityItems.take(15).toList();
+
+    if (displayItems.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('📭', style: TextStyle(fontSize: 48)),
+              const SizedBox(height: 16),
+              Text('No activity yet', style: AppText.heading(size: 18)),
+              const SizedBox(height: 8),
+              Text(
+                'Your gig and rental history will show up here.',
+                textAlign: TextAlign.center,
+                style: AppText.body(size: 14, color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
       separatorBuilder: (_, __) => const SizedBox(height: 1),
-      itemCount: items.length,
-      itemBuilder: (_, i) => _ActivityRow(data: items[i], isLast: i == items.length - 1),
+      itemCount: displayItems.length,
+      itemBuilder: (_, i) => _ActivityRow(
+        data: displayItems[i],
+        isLast: i == displayItems.length - 1,
+      ),
     );
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  Color _gigStatusColor(GigStatus status) {
+    switch (status) {
+      case GigStatus.open:
+        return AppColors.cyan;
+      case GigStatus.accepted:
+        return AppColors.amber;
+      case GigStatus.inProgress:
+        return AppColors.violet;
+      case GigStatus.completedPendingReview:
+        return AppColors.lime;
+      case GigStatus.closed:
+        return AppColors.textMuted;
+      case GigStatus.cancelled:
+        return AppColors.coral;
+      case GigStatus.reported:
+        return AppColors.coral;
+    }
+  }
+
+  Color _rentalStatusColor(RentalStatus status) {
+    switch (status) {
+      case RentalStatus.available:
+        return AppColors.lime;
+      case RentalStatus.requested:
+        return AppColors.amber;
+      case RentalStatus.active:
+        return AppColors.cyan;
+      case RentalStatus.returnPending:
+        return AppColors.violet;
+      case RentalStatus.completed:
+        return AppColors.textMuted;
+      case RentalStatus.disputed:
+        return AppColors.coral;
+      case RentalStatus.cancelled:
+        return AppColors.coral;
+    }
   }
 }
 
@@ -303,17 +649,25 @@ class _ProfileScreenState extends State<ProfileScreen>
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
   const _StickyTabBarDelegate({required this.tabBar});
-  @override double get minExtent => tabBar.preferredSize.height + 1;
-  @override double get maxExtent => tabBar.preferredSize.height + 1;
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) =>
-    Container(
-      color: AppColors.bg,
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
+  double get minExtent => tabBar.preferredSize.height + 1;
+  @override
+  double get maxExtent => tabBar.preferredSize.height + 1;
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => Container(
+    color: AppColors.bg,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
         tabBar,
         Divider(height: 1, color: AppColors.border),
-      ]),
-    );
+      ],
+    ),
+  );
   @override
   bool shouldRebuild(_StickyTabBarDelegate old) => false;
 }
@@ -321,21 +675,18 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
 // ─────────────────────────────────────────────
 //  DATA CLASSES
 // ─────────────────────────────────────────────
-class _ReviewData {
-  final String reviewer, text, type, ago;
-  final int rating;
-  const _ReviewData({required this.reviewer, required this.rating, required this.text, required this.type, required this.ago});
-}
-
-class _ListingData {
-  final String title, type, status, badge, rate;
-  const _ListingData({required this.title, required this.type, required this.status, required this.badge, required this.rate});
-}
-
 class _ActivityItem {
   final String emoji, title, sub, time;
   final Color color;
-  const _ActivityItem({required this.emoji, required this.title, required this.sub, required this.time, required this.color});
+  final DateTime createdAt;
+  const _ActivityItem({
+    required this.emoji,
+    required this.title,
+    required this.sub,
+    required this.time,
+    required this.color,
+    required this.createdAt,
+  });
 }
 
 // ─────────────────────────────────────────────
@@ -349,7 +700,8 @@ class _IconBtn extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
-      width: 38, height: 38,
+      width: 38,
+      height: 38,
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.3),
         borderRadius: BorderRadius.circular(10),
@@ -363,139 +715,218 @@ class _IconBtn extends StatelessWidget {
 class _StatBlock extends StatelessWidget {
   final String value, label;
   final Color color;
-  const _StatBlock({required this.value, required this.label, required this.color});
+  const _StatBlock({
+    required this.value,
+    required this.label,
+    required this.color,
+  });
   @override
-  Widget build(BuildContext context) => Column(children: [
-    Text(value, style: GoogleFonts.syne(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
-    const SizedBox(height: 3),
-    Text(label, style: AppText.body(size: 11, color: AppColors.textMuted)),
-  ]);
-}
-
-class _RatingBar extends StatelessWidget {
-  final int stars, count, total;
-  const _RatingBar({required this.stars, required this.count, required this.total});
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 2),
-    child: Row(children: [
-      Text('$stars', style: AppText.body(size: 11, color: AppColors.textMuted)),
-      const SizedBox(width: 4),
-      const Icon(Icons.star_rounded, size: 10, color: AppColors.amber),
-      const SizedBox(width: 6),
-      Expanded(child: ClipRRect(
-        borderRadius: BorderRadius.circular(2),
-        child: LinearProgressIndicator(
-          value: total > 0 ? count / total : 0,
-          backgroundColor: AppColors.surfaceHigh,
-          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.amber),
-          minHeight: 6,
+  Widget build(BuildContext context) => Column(
+    children: [
+      Text(
+        value,
+        style: GoogleFonts.syne(
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+          color: color,
         ),
-      )),
-      const SizedBox(width: 6),
-      Text('$count', style: AppText.body(size: 11, color: AppColors.textMuted)),
-    ]),
+      ),
+      const SizedBox(height: 3),
+      Text(label, style: AppText.body(size: 11, color: AppColors.textMuted)),
+    ],
   );
 }
 
 class _MiniStat extends StatelessWidget {
   final String emoji, label, value;
-  const _MiniStat({required this.emoji, required this.label, required this.value});
+  const _MiniStat({
+    required this.emoji,
+    required this.label,
+    required this.value,
+  });
   @override
-  Widget build(BuildContext context) => Column(children: [
-    Text(emoji, style: const TextStyle(fontSize: 18)),
-    const SizedBox(height: 4),
-    Text(value, style: AppText.heading(size: 14)),
-    Text(label, style: AppText.body(size: 11, color: AppColors.textMuted)),
-  ]);
-}
-
-class _ReviewCard extends StatelessWidget {
-  final _ReviewData data;
-  const _ReviewCard({required this.data});
-  @override
-  Widget build(BuildContext context) => SurfaceCard(
-    radius: 14,
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Container(
-          width: 36, height: 36,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(colors: [AppColors.violet, AppColors.cyan]),
-          ),
-          child: Center(child: Text(data.reviewer[0],
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white))),
-        ),
-        const SizedBox(width: 10),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(data.reviewer, style: AppText.body(size: 13).copyWith(fontWeight: FontWeight.w600)),
-          Text(data.ago, style: AppText.body(size: 11, color: AppColors.textMuted)),
-        ])),
-        Row(children: List.generate(data.rating, (_) =>
-          const Icon(Icons.star_rounded, size: 14, color: AppColors.amber))),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-          decoration: BoxDecoration(
-            color: (data.type == 'Gig' ? AppColors.violet : AppColors.cyan).withOpacity(0.15),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(data.type,
-            style: AppText.label(size: 10,
-              color: data.type == 'Gig' ? AppColors.violet : AppColors.cyan)),
-        ),
-      ]),
-      const SizedBox(height: 10),
-      Text('"${data.text}"',
-        style: AppText.body(size: 13, color: AppColors.textMuted).copyWith(
-          fontStyle: FontStyle.italic, height: 1.45)),
-    ]),
+  Widget build(BuildContext context) => Column(
+    children: [
+      Text(emoji, style: const TextStyle(fontSize: 18)),
+      const SizedBox(height: 4),
+      Text(value, style: AppText.heading(size: 14)),
+      Text(label, style: AppText.body(size: 11, color: AppColors.textMuted)),
+    ],
   );
 }
 
-class _ListingTile extends StatelessWidget {
-  final _ListingData data;
-  const _ListingTile({required this.data});
+// ── Listing tiles ─────────────────────────────
+class _GigListingTile extends StatelessWidget {
+  final GigModel gig;
+  const _GigListingTile({required this.gig});
 
   Color get _statusColor {
-    switch (data.status) {
-      case 'AVAILABLE':    return AppColors.lime;
-      case 'OPEN':         return AppColors.cyan;
-      case 'IN PROGRESS':  return AppColors.amber;
-      default:             return AppColors.textMuted;
+    switch (gig.status) {
+      case GigStatus.open:
+        return AppColors.cyan;
+      case GigStatus.accepted:
+        return AppColors.amber;
+      case GigStatus.inProgress:
+        return AppColors.violet;
+      case GigStatus.completedPendingReview:
+        return AppColors.lime;
+      default:
+        return AppColors.textMuted;
     }
   }
 
   @override
   Widget build(BuildContext context) => SurfaceCard(
     radius: 12,
-    child: Row(children: [
-      Container(
-        width: 44, height: 44,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceHigh,
-          borderRadius: BorderRadius.circular(10),
+    child: Row(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceHigh,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: Text(
+              gig.category.emoji,
+              style: const TextStyle(fontSize: 22),
+            ),
+          ),
         ),
-        child: Center(child: Text(data.badge, style: const TextStyle(fontSize: 22))),
-      ),
-      const SizedBox(width: 12),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(data.title, style: AppText.body(size: 13).copyWith(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 3),
-        Row(children: [
-          Container(width: 7, height: 7,
-            decoration: BoxDecoration(color: _statusColor, shape: BoxShape.circle)),
-          const SizedBox(width: 5),
-          Text(data.status, style: AppText.label(size: 10, color: _statusColor)),
-          const SizedBox(width: 8),
-          Text('· ${data.type}', style: AppText.body(size: 12, color: AppColors.textMuted)),
-        ]),
-      ])),
-      Text(data.rate, style: AppText.price(size: 14)),
-      const SizedBox(width: 8),
-      const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 18),
-    ]),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                gig.title,
+                style: AppText.body(
+                  size: 13,
+                ).copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 3),
+              Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: _statusColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    gig.status.label,
+                    style: AppText.label(size: 10, color: _statusColor),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '· Gig',
+                    style: AppText.body(size: 12, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Text('₹${gig.price}', style: AppText.price(size: 14)),
+        const SizedBox(width: 8),
+        const Icon(
+          Icons.chevron_right_rounded,
+          color: AppColors.textMuted,
+          size: 18,
+        ),
+      ],
+    ),
+  );
+}
+
+class _RentalListingTile extends StatelessWidget {
+  final RentalModel rental;
+  const _RentalListingTile({required this.rental});
+
+  Color get _statusColor {
+    switch (rental.status) {
+      case RentalStatus.available:
+        return AppColors.lime;
+      case RentalStatus.requested:
+        return AppColors.amber;
+      case RentalStatus.active:
+        return AppColors.cyan;
+      case RentalStatus.returnPending:
+        return AppColors.violet;
+      default:
+        return AppColors.textMuted;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SurfaceCard(
+    radius: 12,
+    child: Row(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceHigh,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: Text(
+              rental.category.emoji,
+              style: const TextStyle(fontSize: 22),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                rental.itemName,
+                style: AppText.body(
+                  size: 13,
+                ).copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 3),
+              Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: _statusColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    rental.status.label,
+                    style: AppText.label(size: 10, color: _statusColor),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '· Rental',
+                    style: AppText.body(size: 12, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Text('₹${rental.dailyRate}/d', style: AppText.price(size: 14)),
+        const SizedBox(width: 8),
+        const Icon(
+          Icons.chevron_right_rounded,
+          color: AppColors.textMuted,
+          size: 18,
+        ),
+      ],
+    ),
   );
 }
 
@@ -505,33 +936,65 @@ class _ActivityRow extends StatelessWidget {
   const _ActivityRow({required this.data, required this.isLast});
   @override
   Widget build(BuildContext context) => IntrinsicHeight(
-    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Column(mainAxisSize: MainAxisSize.max, children: [
-        Container(
-          width: 36, height: 36,
-          decoration: BoxDecoration(
-            color: data.color.withOpacity(0.12),
-            shape: BoxShape.circle,
-            border: Border.all(color: data.color.withOpacity(0.3)),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: data.color.withOpacity(0.12),
+                shape: BoxShape.circle,
+                border: Border.all(color: data.color.withOpacity(0.3)),
+              ),
+              child: Center(
+                child: Text(data.emoji, style: const TextStyle(fontSize: 16)),
+              ),
+            ),
+            if (!isLast)
+              Expanded(
+                child: Container(
+                  width: 1.5,
+                  color: AppColors.border,
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 20, top: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data.title,
+                  style: AppText.body(
+                    size: 13,
+                  ).copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  data.sub,
+                  style: AppText.body(size: 12, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  data.time,
+                  style: AppText.body(
+                    size: 11,
+                    color: AppColors.textMuted.withOpacity(0.7),
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: Center(child: Text(data.emoji, style: const TextStyle(fontSize: 16))),
         ),
-        if (!isLast) Expanded(
-          child: Container(width: 1.5, color: AppColors.border,
-            margin: const EdgeInsets.symmetric(vertical: 4)),
-        ),
-      ]),
-      const SizedBox(width: 14),
-      Expanded(child: Padding(
-        padding: const EdgeInsets.only(bottom: 20, top: 6),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(data.title, style: AppText.body(size: 13).copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 2),
-          Text(data.sub,  style: AppText.body(size: 12, color: AppColors.textMuted)),
-          const SizedBox(height: 4),
-          Text(data.time, style: AppText.body(size: 11, color: AppColors.textMuted.withOpacity(0.7))),
-        ]),
-      )),
-    ]),
+      ],
+    ),
   );
 }

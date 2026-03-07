@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/rental_model.dart';
 import '../../providers/gig_rental_providers.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/rental_service.dart';
 import '../../theme/app_theme.dart' hide RentalCategory;
 
 // ─────────────────────────────────────────────

@@ -1,89 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import '../../theme/app_theme.dart';
+import '../../models/gig_model.dart';
+import '../../models/rental_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/gig_rental_providers.dart';
+import '../../theme/app_theme.dart' hide GigCategory, RentalCategory;
 
 // ─────────────────────────────────────────────
 //  DASHBOARD SCREEN
 // ─────────────────────────────────────────────
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen>
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _fadeCtrl;
   late Animation<double> _fadeAnim;
-
-  // ── mock data ────────────────────────────────
-  static const _user = (
-    name: 'Alex Kumar',
-    dept: 'Computer Science',
-    initial: 'A',
-    notifCount: 3,
-    balance: '₹2,450',
-    activeGigs: '3',
-    rating: '4.8',
-  );
-
-  final _activeGigs = const [
-    _ActiveGigData(
-      title: 'Calculus Tutoring',
-      category: 'Tutoring',
-      price: '₹300',
-      deadline: 'Due tomorrow',
-      status: 'IN PROGRESS',
-    ),
-    _ActiveGigData(
-      title: 'Build Login UI',
-      category: 'Coding',
-      price: '₹500',
-      deadline: 'Due in 3 days',
-      status: 'OPEN',
-    ),
-    _ActiveGigData(
-      title: 'Deliver Lab Notes',
-      category: 'Delivery',
-      price: '₹80',
-      deadline: 'Today, 6 PM',
-      status: 'ACCEPTED',
-    ),
-  ];
-
-  final _feed = const [
-    _FeedItem(
-      emoji: '🏃',
-      title: 'Errand accepted',
-      sub: 'by Priya S.',
-      time: '2m ago',
-    ),
-    _FeedItem(
-      emoji: '📸',
-      title: 'DSLR returned & confirmed',
-      sub: 'Deposit refunded',
-      time: '1h ago',
-    ),
-    _FeedItem(
-      emoji: '⭐',
-      title: 'You received a 5★ review!',
-      sub: '"Super fast delivery"',
-      time: '3h ago',
-    ),
-    _FeedItem(
-      emoji: '✍️',
-      title: 'New writing gig posted',
-      sub: 'Writing · ₹200',
-      time: '5h ago',
-    ),
-    _FeedItem(
-      emoji: '📦',
-      title: 'Rental request from Rahul',
-      sub: 'Canon DSLR · 3 days',
-      time: '6h ago',
-    ),
-  ];
 
   @override
   void initState() {
@@ -105,28 +42,57 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ── build ─────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final userAsync = ref.watch(currentUserProfileProvider);
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: FadeTransition(
         opacity: _fadeAnim,
-        child: CustomScrollView(
-          slivers: [
-            _header(),
-            _statsRow(),
-            _quickActions(),
-            _sectionTitle('Active Gigs'),
-            _activeGigRow(),
-            _sectionTitle('Recent Activity'),
-            _activityFeed(),
-            const SliverPadding(padding: EdgeInsets.only(bottom: 110)),
-          ],
+        child: userAsync.when(
+          loading: () => const Center(
+            child: CircularProgressIndicator(
+              color: AppColors.violet,
+              strokeWidth: 2,
+            ),
+          ),
+          error: (e, _) => Center(
+            child: Text(
+              'Error: $e',
+              style: AppText.body(color: AppColors.coral),
+            ),
+          ),
+          data: (user) {
+            if (user == null) {
+              return Center(
+                child: Text(
+                  'Not logged in',
+                  style: AppText.body(color: AppColors.coral),
+                ),
+              );
+            }
+            return CustomScrollView(
+              slivers: [
+                _header(user),
+                _statsRow(user),
+                _quickActions(),
+                _sectionTitle(
+                  'Active Gigs',
+                  onSeeAll: () => context.push('/my-gigs'),
+                ),
+                _activeGigRow(),
+                _sectionTitle('Recent Activity', onSeeAll: () {}),
+                _activityFeed(),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 110)),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
   // ── header ────────────────────────────────────
-  Widget _header() => SliverToBoxAdapter(
+  Widget _header(user) => SliverToBoxAdapter(
     child: Padding(
       padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
       child: Row(
@@ -136,29 +102,33 @@ class _DashboardScreenState extends State<DashboardScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Hey, ${_user.name.split(' ').first} 👋',
+                  'Hey, ${user.name.isNotEmpty ? user.name.split(' ').first : 'there'} 👋',
                   style: AppText.display(size: 26),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 3,
+                    if (user.isVerified)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.violet.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '✓ Verified',
+                          style: AppText.label(
+                            size: 10,
+                            color: AppColors.violet,
+                          ),
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: AppColors.violet.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '✓ Verified',
-                        style: AppText.label(size: 10, color: AppColors.violet),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
+                    if (user.isVerified) const SizedBox(width: 8),
                     Text(
-                      _user.dept,
+                      user.department,
                       style: AppText.body(size: 13, color: AppColors.textMuted),
                     ),
                   ],
@@ -166,53 +136,57 @@ class _DashboardScreenState extends State<DashboardScreen>
               ],
             ),
           ),
-          _NotifButton(
-            count: _user.notifCount,
-            onTap: () => context.push('/notifications'),
-          ),
+          _NotifButton(count: 0, onTap: () => context.push('/notifications')),
           const SizedBox(width: 10),
-          _AvatarCircle(initial: _user.initial),
+          _AvatarCircle(
+            initial: user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+          ),
         ],
       ),
     ),
   );
 
   // ── stats row ─────────────────────────────────
-  Widget _statsRow() => SliverToBoxAdapter(
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-      child: Row(
-        children: [
-          Expanded(
-            child: _StatCard(
-              label: 'Balance',
-              value: _user.balance,
-              color: AppColors.lime,
-              emoji: '💰',
+  Widget _statsRow(user) {
+    final activeGigs = ref.watch(activeGigCountProvider);
+    final activeRentals = ref.watch(activeRentalCountProvider);
+
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                label: 'Active Gigs',
+                value: '$activeGigs',
+                color: AppColors.cyan,
+                emoji: '⚡',
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _StatCard(
-              label: 'Active Gigs',
-              value: _user.activeGigs,
-              color: AppColors.cyan,
-              emoji: '⚡',
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(
+                label: 'Active Rentals',
+                value: '$activeRentals',
+                color: AppColors.lime,
+                emoji: '📦',
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _StatCard(
-              label: 'Rating',
-              value: '${_user.rating}★',
-              color: AppColors.amber,
-              emoji: '🏆',
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(
+                label: 'Rating',
+                value: '${user.rating}★',
+                color: AppColors.amber,
+                emoji: '🏆',
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   // ── quick actions ─────────────────────────────
   Widget _quickActions() => SliverToBoxAdapter(
@@ -230,7 +204,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   emoji: '🔍',
                   label: 'Browse\nGigs',
                   grad: [AppColors.violet, const Color(0xFF5000EE)],
-                  onTap: () {},
+                  onTap: () => context.push('/gigs'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -239,7 +213,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   emoji: '✏️',
                   label: 'Post\nGig',
                   grad: [const Color(0xFF0099BB), AppColors.cyan],
-                  onTap: () {},
+                  onTap: () => context.push('/gigs/post'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -248,7 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   emoji: '📦',
                   label: 'Browse\nRentals',
                   grad: [const Color(0xFF885000), AppColors.amber],
-                  onTap: () {},
+                  onTap: () => context.push('/rentals'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -257,7 +231,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   emoji: '➕',
                   label: 'List\nItem',
                   grad: [const Color(0xFF4A6000), AppColors.lime],
-                  onTap: () {},
+                  onTap: () => context.push('/rentals/list'),
                 ),
               ),
             ],
@@ -268,46 +242,180 @@ class _DashboardScreenState extends State<DashboardScreen>
   );
 
   // ── section title ─────────────────────────────
-  Widget _sectionTitle(String title) => SliverToBoxAdapter(
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: AppText.heading(size: 18)),
-          Text(
-            'See all →',
-            style: AppText.body(size: 13, color: AppColors.violet),
+  Widget _sectionTitle(String title, {VoidCallback? onSeeAll}) =>
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: AppText.heading(size: 18)),
+              GestureDetector(
+                onTap: onSeeAll,
+                child: Text(
+                  'See all →',
+                  style: AppText.body(size: 13, color: AppColors.violet),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 
   // ── active gig horizontal scroll ──────────────
-  Widget _activeGigRow() => SliverToBoxAdapter(
-    child: SizedBox(
-      height: 156,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        scrollDirection: Axis.horizontal,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemCount: _activeGigs.length,
-        itemBuilder: (_, i) => _ActiveGigCard(data: _activeGigs[i]),
+  Widget _activeGigRow() {
+    final postedAsync = ref.watch(myPostedGigsProvider);
+    final acceptedAsync = ref.watch(myAcceptedGigsProvider);
+
+    final posted = postedAsync.valueOrNull ?? [];
+    final accepted = acceptedAsync.valueOrNull ?? [];
+
+    final activeStatuses = {
+      GigStatus.open,
+      GigStatus.accepted,
+      GigStatus.inProgress,
+      GigStatus.completedPendingReview,
+    };
+
+    final activeGigs = [
+      ...posted.where((g) => activeStatuses.contains(g.status)),
+      ...accepted.where((g) => activeStatuses.contains(g.status)),
+    ];
+    // Deduplicate by gigId
+    final seen = <String>{};
+    final dedupedGigs = activeGigs.where((g) => seen.add(g.gigId)).toList();
+    dedupedGigs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final displayGigs = dedupedGigs.take(5).toList();
+
+    if (postedAsync.isLoading || acceptedAsync.isLoading) {
+      return const SliverToBoxAdapter(
+        child: SizedBox(
+          height: 156,
+          child: Center(
+            child: CircularProgressIndicator(
+              color: AppColors.violet,
+              strokeWidth: 2,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (displayGigs.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: SurfaceCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                const Text('📋', style: TextStyle(fontSize: 32)),
+                const SizedBox(height: 8),
+                Text('No active gigs', style: AppText.heading(size: 14)),
+                const SizedBox(height: 4),
+                Text(
+                  'Post a gig or browse open ones to get started.',
+                  style: AppText.body(size: 13, color: AppColors.textMuted),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SliverToBoxAdapter(
+      child: SizedBox(
+        height: 156,
+        child: ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          scrollDirection: Axis.horizontal,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemCount: displayGigs.length,
+          itemBuilder: (_, i) => _ActiveGigCard(gig: displayGigs[i]),
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   // ── activity feed ─────────────────────────────
-  Widget _activityFeed() => SliverList(
-    delegate: SliverChildBuilderDelegate(
-      (_, i) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-        child: _FeedTile(item: _feed[i]),
+  Widget _activityFeed() {
+    final gigsAsync = ref.watch(myPostedGigsProvider);
+    final rentalsAsync = ref.watch(myOwnedRentalsProvider);
+
+    final gigs = gigsAsync.valueOrNull ?? [];
+    final rentals = rentalsAsync.valueOrNull ?? [];
+
+    // Build feed items from real data
+    final feedItems = <_FeedItem>[];
+    for (final gig in gigs) {
+      feedItems.add(
+        _FeedItem(
+          emoji: gig.category.emoji,
+          title: '${gig.status.label} — ${gig.title}',
+          sub: '₹${gig.price} · ${gig.category.label}',
+          time: gig.timeAgo,
+          createdAt: gig.createdAt,
+        ),
+      );
+    }
+    for (final rental in rentals) {
+      feedItems.add(
+        _FeedItem(
+          emoji: rental.category.emoji,
+          title: '${rental.status.label} — ${rental.itemName}',
+          sub: '₹${rental.dailyRate}/day',
+          time: _timeAgo(rental.createdAt),
+          createdAt: rental.createdAt,
+        ),
+      );
+    }
+
+    feedItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final displayItems = feedItems.take(5).toList();
+
+    if (displayItems.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: SurfaceCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                const Text('📭', style: TextStyle(fontSize: 32)),
+                const SizedBox(height: 8),
+                Text('No recent activity', style: AppText.heading(size: 14)),
+                const SizedBox(height: 4),
+                Text(
+                  'Your gig and rental activity will show up here.',
+                  style: AppText.body(size: 13, color: AppColors.textMuted),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (_, i) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+          child: _FeedTile(item: displayItems[i]),
+        ),
+        childCount: displayItems.length,
       ),
-      childCount: _feed.length,
-    ),
-  );
+    );
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -473,39 +581,32 @@ class _ActionTile extends StatelessWidget {
   );
 }
 
-// ── data classes ──────────────────────────────
-class _ActiveGigData {
-  final String title, category, price, deadline, status;
-  const _ActiveGigData({
-    required this.title,
-    required this.category,
-    required this.price,
-    required this.deadline,
-    required this.status,
-  });
-}
-
+// ── data class for feed ──────────────────────
 class _FeedItem {
   final String emoji, title, sub, time;
+  final DateTime createdAt;
   const _FeedItem({
     required this.emoji,
     required this.title,
     required this.sub,
     required this.time,
+    required this.createdAt,
   });
 }
 
 // ── active gig card ───────────────────────────
 class _ActiveGigCard extends StatelessWidget {
-  final _ActiveGigData data;
-  const _ActiveGigCard({required this.data});
+  final GigModel gig;
+  const _ActiveGigCard({required this.gig});
 
   Color get _statusColor {
-    switch (data.status) {
-      case 'IN PROGRESS':
+    switch (gig.status) {
+      case GigStatus.inProgress:
         return AppColors.lime;
-      case 'ACCEPTED':
+      case GigStatus.accepted:
         return AppColors.cyan;
+      case GigStatus.completedPendingReview:
+        return AppColors.violet;
       default:
         return AppColors.amber;
     }
@@ -513,7 +614,8 @@ class _ActiveGigCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final catColor = GigCategory.colorOf(data.category);
+    final catLabel = gig.category.label;
+    final catColor = _catColor(gig.category);
     return SurfaceCard(
       padding: const EdgeInsets.all(14),
       child: SizedBox(
@@ -524,9 +626,9 @@ class _ActiveGigCard extends StatelessWidget {
             Row(
               children: [
                 CategoryBadge(
-                  label: data.category,
+                  label: catLabel,
                   color: catColor,
-                  emoji: GigCategory.emojiOf(data.category),
+                  emoji: gig.category.emoji,
                 ),
                 const Spacer(),
                 Container(
@@ -541,7 +643,7 @@ class _ActiveGigCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              data.title,
+              gig.title,
               style: AppText.heading(size: 14),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -550,10 +652,15 @@ class _ActiveGigCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(data.price, style: AppText.price(size: 16)),
+                Text('₹${gig.price}', style: AppText.price(size: 16)),
                 Text(
-                  data.deadline,
-                  style: AppText.body(size: 11, color: AppColors.textMuted),
+                  gig.isOverdue ? 'OVERDUE' : 'Due ${gig.deadlineFormatted}',
+                  style: AppText.body(
+                    size: 11,
+                    color: gig.isOverdue
+                        ? AppColors.coral
+                        : AppColors.textMuted,
+                  ),
                 ),
               ],
             ),
@@ -561,6 +668,23 @@ class _ActiveGigCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _catColor(GigCategory cat) {
+    switch (cat) {
+      case GigCategory.tutoring:
+        return AppColors.violet;
+      case GigCategory.delivery:
+        return AppColors.cyan;
+      case GigCategory.writing:
+        return AppColors.lime;
+      case GigCategory.coding:
+        return AppColors.amber;
+      case GigCategory.errands:
+        return AppColors.coral;
+      case GigCategory.other:
+        return const Color(0xFF7777AA);
+    }
   }
 }
 
@@ -598,6 +722,8 @@ class _FeedTile extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
               Text(

@@ -74,7 +74,7 @@ class AuthService {
     await _db
         .collection('users')
         .doc(user.userId)
-        .set(user.toFirestore());
+        .set(user.toFirestore(), SetOptions(merge: true));
   }
 
   Future<UserModel?> getUserProfile(String userId) async {

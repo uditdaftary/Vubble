@@ -1,29 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../theme/app_theme.dart';
+import 'package:go_router/go_router.dart';
+import '../../models/gig_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/gig_rental_providers.dart';
+import '../../theme/app_theme.dart' hide GigCategory;
 
 // ─────────────────────────────────────────────
 //  POST GIG SCREEN
 // ─────────────────────────────────────────────
-class PostGigScreen extends StatefulWidget {
+class PostGigScreen extends ConsumerStatefulWidget {
   const PostGigScreen({super.key});
   @override
-  State<PostGigScreen> createState() => _PostGigScreenState();
+  ConsumerState<PostGigScreen> createState() => _PostGigScreenState();
 }
 
-class _PostGigScreenState extends State<PostGigScreen> with SingleTickerProviderStateMixin {
-  final _formKey   = GlobalKey<FormState>();
+class _PostGigScreenState extends ConsumerState<PostGigScreen>
+    with SingleTickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
-  final _descCtrl  = TextEditingController();
+  final _descCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
-  String    _category    = '';
+  String _category = '';
   DateTime? _deadline;
-  bool      _isPosting   = false;
+  bool _isPosting = false;
   late final AnimationController _pulseCtrl;
-  late final Animation<double>   _pulseAnim;
+  late final Animation<double> _pulseAnim;
 
-  static const _categories = ['Tutoring', 'Delivery', 'Writing', 'Coding', 'Errands', 'Other'];
+  static const _categories = [
+    'Tutoring',
+    'Delivery',
+    'Writing',
+    'Coding',
+    'Errands',
+    'Other',
+  ];
 
   int get _completedSteps => [
     _titleCtrl.text.isNotEmpty,
@@ -35,14 +48,17 @@ class _PostGigScreenState extends State<PostGigScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _pulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
-      ..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 0.65, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(
+      begin: 0.65,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
     // Rebuild progress on every keystroke
     _titleCtrl.addListener(() => setState(() {}));
-    _descCtrl.addListener(()  => setState(() {}));
+    _descCtrl.addListener(() => setState(() {}));
     _priceCtrl.addListener(() => setState(() {}));
   }
 
@@ -83,8 +99,11 @@ class _PostGigScreenState extends State<PostGigScreen> with SingleTickerProvider
               style: AppText.input(),
               maxLength: 80,
               textCapitalization: TextCapitalization.sentences,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Please add a title' : null,
-              decoration: const InputDecoration(hintText: 'e.g. Calculus tutoring for 2 hrs'),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Please add a title' : null,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Calculus tutoring for 2 hrs',
+              ),
             ),
             const SizedBox(height: 20),
             // ── category
@@ -101,7 +120,9 @@ class _PostGigScreenState extends State<PostGigScreen> with SingleTickerProvider
               maxLines: 4,
               maxLength: 500,
               textCapitalization: TextCapitalization.sentences,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Please describe the gig' : null,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Please describe the gig'
+                  : null,
               decoration: const InputDecoration(
                 hintText: 'Describe exactly what you need…',
                 alignLabelWithHint: true,
@@ -109,11 +130,14 @@ class _PostGigScreenState extends State<PostGigScreen> with SingleTickerProvider
             ),
             const SizedBox(height: 20),
             // ── price + deadline
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(child: _priceField()),
-              const SizedBox(width: 14),
-              Expanded(child: _deadlineField()),
-            ]),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _priceField()),
+                const SizedBox(width: 14),
+                Expanded(child: _deadlineField()),
+              ],
+            ),
             const SizedBox(height: 28),
             // ── live preview
             if (_titleCtrl.text.isNotEmpty) ...[
@@ -139,19 +163,28 @@ class _PostGigScreenState extends State<PostGigScreen> with SingleTickerProvider
   Widget _progressBar() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Row(children: List.generate(4, (i) => Expanded(
-        child: Container(
-          height: 4,
-          margin: EdgeInsets.only(right: i < 3 ? 4 : 0),
-          decoration: BoxDecoration(
-            color: i < _completedSteps ? AppColors.violet : AppColors.border,
-            borderRadius: BorderRadius.circular(2),
+      Row(
+        children: List.generate(
+          4,
+          (i) => Expanded(
+            child: Container(
+              height: 4,
+              margin: EdgeInsets.only(right: i < 3 ? 4 : 0),
+              decoration: BoxDecoration(
+                color: i < _completedSteps
+                    ? AppColors.violet
+                    : AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ),
         ),
-      ))),
+      ),
       const SizedBox(height: 8),
-      Text('Step $_completedSteps of 4 complete',
-        style: AppText.body(size: 12, color: AppColors.textMuted)),
+      Text(
+        'Step $_completedSteps of 4 complete',
+        style: AppText.body(size: 12, color: AppColors.textMuted),
+      ),
     ],
   );
 
@@ -167,120 +200,188 @@ class _PostGigScreenState extends State<PostGigScreen> with SingleTickerProvider
     mainAxisSpacing: 10,
     childAspectRatio: 2.4,
     children: _categories.map((cat) {
-      final sel   = _category == cat;
-      final color = GigCategory.colorOf(cat);
+      final sel = _category == cat;
+      final color = _gigColor(cat);
       return GestureDetector(
         onTap: () => setState(() => _category = cat),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           decoration: BoxDecoration(
-            color:  sel ? color : AppColors.surface,
+            color: sel ? color : AppColors.surface,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: sel ? color : AppColors.border),
           ),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text(GigCategory.emojiOf(cat), style: const TextStyle(fontSize: 14)),
-            const SizedBox(width: 5),
-            Text(cat,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12, fontWeight: FontWeight.w600,
-                color: sel ? Colors.white : AppColors.textMuted,
-              )),
-          ]),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_gigEmoji(cat), style: const TextStyle(fontSize: 14)),
+              const SizedBox(width: 5),
+              Text(
+                cat,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: sel ? Colors.white : AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }).toList(),
   );
 
   // ── price field ───────────────────────────────
-  Widget _priceField() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    _fieldLabel('YOUR BUDGET (₹)'),
-    const SizedBox(height: 8),
-    TextFormField(
-      controller: _priceCtrl,
-      style: GoogleFonts.syne(color: AppColors.lime, fontSize: 20, fontWeight: FontWeight.w800),
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-      decoration: InputDecoration(
-        hintText: '0',
-        hintStyle: GoogleFonts.syne(color: AppColors.textMuted, fontSize: 20),
-        prefixText: '₹ ',
-        prefixStyle: GoogleFonts.syne(color: AppColors.lime, fontSize: 20, fontWeight: FontWeight.w800),
+  Widget _priceField() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _fieldLabel('YOUR BUDGET (₹)'),
+      const SizedBox(height: 8),
+      TextFormField(
+        controller: _priceCtrl,
+        style: GoogleFonts.syne(
+          color: AppColors.lime,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+        ),
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+        decoration: InputDecoration(
+          hintText: '0',
+          hintStyle: GoogleFonts.syne(color: AppColors.textMuted, fontSize: 20),
+          prefixText: '₹ ',
+          prefixStyle: GoogleFonts.syne(
+            color: AppColors.lime,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
-    ),
-  ]);
+    ],
+  );
 
   // ── deadline field ────────────────────────────
-  Widget _deadlineField() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    _fieldLabel('DEADLINE'),
-    const SizedBox(height: 8),
-    GestureDetector(
-      onTap: _pickDate,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceHigh,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _deadline != null ? AppColors.violet : AppColors.border),
-        ),
-        child: Row(children: [
-          const Icon(Icons.calendar_month_rounded, size: 16, color: AppColors.textMuted),
-          const SizedBox(width: 8),
-          Text(
-            _deadline != null ? _fmtDate(_deadline!) : 'Pick date',
-            style: AppText.body(size: 14, color: _deadline != null ? AppColors.textPrimary : AppColors.textMuted),
+  Widget _deadlineField() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _fieldLabel('DEADLINE'),
+      const SizedBox(height: 8),
+      GestureDetector(
+        onTap: _pickDate,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceHigh,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _deadline != null ? AppColors.violet : AppColors.border,
+            ),
           ),
-        ]),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.calendar_month_rounded,
+                size: 16,
+                color: AppColors.textMuted,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _deadline != null ? _fmtDate(_deadline!) : 'Pick date',
+                style: AppText.body(
+                  size: 14,
+                  color: _deadline != null
+                      ? AppColors.textPrimary
+                      : AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-    ),
-  ]);
+    ],
+  );
 
   // ── live preview card ─────────────────────────
   Widget _livePreview() {
-    final cc = _category.isNotEmpty ? GigCategory.colorOf(_category) : AppColors.violet;
+    final cc = _category.isNotEmpty ? _gigColor(_category) : AppColors.violet;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.violet.withOpacity(0.35)),
-        boxShadow: [BoxShadow(color: AppColors.violet.withOpacity(0.08), blurRadius: 20)],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          if (_category.isNotEmpty)
-            CategoryBadge(label: _category, color: cc, emoji: GigCategory.emojiOf(_category)),
-          const Spacer(),
-          // Pulse dot
-          FadeTransition(
-            opacity: _pulseAnim,
-            child: Container(width: 8, height: 8,
-              decoration: const BoxDecoration(color: AppColors.lime, shape: BoxShape.circle)),
-          ),
-          const SizedBox(width: 6),
-          Text('OPEN', style: AppText.label(size: 10, color: AppColors.lime)),
-        ]),
-        const SizedBox(height: 10),
-        Text(_titleCtrl.text, style: AppText.heading(size: 15)),
-        if (_descCtrl.text.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text(_descCtrl.text,
-            maxLines: 2, overflow: TextOverflow.ellipsis,
-            style: AppText.body(size: 13, color: AppColors.textMuted).copyWith(height: 1.4)),
+        boxShadow: [
+          BoxShadow(color: AppColors.violet.withOpacity(0.08), blurRadius: 20),
         ],
-        const SizedBox(height: 12),
-        Row(children: [
-          if (_priceCtrl.text.isNotEmpty)
-            Text('₹${_priceCtrl.text}', style: AppText.price(size: 18)),
-          const Spacer(),
-          if (_deadline != null) ...[
-            const Icon(Icons.schedule_rounded, size: 13, color: AppColors.textMuted),
-            const SizedBox(width: 4),
-            Text(_fmtDate(_deadline!), style: AppText.body(size: 12, color: AppColors.textMuted)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (_category.isNotEmpty)
+                CategoryBadge(
+                  label: _category,
+                  color: cc,
+                  emoji: _gigEmoji(_category),
+                ),
+              const Spacer(),
+              // Pulse dot
+              FadeTransition(
+                opacity: _pulseAnim,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppColors.lime,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'OPEN',
+                style: AppText.label(size: 10, color: AppColors.lime),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(_titleCtrl.text, style: AppText.heading(size: 15)),
+          if (_descCtrl.text.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              _descCtrl.text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.body(
+                size: 13,
+                color: AppColors.textMuted,
+              ).copyWith(height: 1.4),
+            ),
           ],
-        ]),
-      ]),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              if (_priceCtrl.text.isNotEmpty)
+                Text('₹${_priceCtrl.text}', style: AppText.price(size: 18)),
+              const Spacer(),
+              if (_deadline != null) ...[
+                const Icon(
+                  Icons.schedule_rounded,
+                  size: 13,
+                  color: AppColors.textMuted,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _fmtDate(_deadline!),
+                  style: AppText.body(size: 12, color: AppColors.textMuted),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -295,7 +396,10 @@ class _PostGigScreenState extends State<PostGigScreen> with SingleTickerProvider
       lastDate: DateTime.now().add(const Duration(days: 30)),
       builder: (ctx, child) => Theme(
         data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(primary: AppColors.violet, surface: AppColors.surface),
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.violet,
+            surface: AppColors.surface,
+          ),
         ),
         child: child!,
       ),
@@ -306,28 +410,109 @@ class _PostGigScreenState extends State<PostGigScreen> with SingleTickerProvider
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_category.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Please pick a category', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
-        backgroundColor: AppColors.coral,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please pick a category',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
+          backgroundColor: AppColors.coral,
+        ),
+      );
       return;
     }
     if (_deadline == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Please set a deadline', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
-        backgroundColor: AppColors.coral,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please set a deadline',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
+          backgroundColor: AppColors.coral,
+        ),
+      );
       return;
     }
+
+    final user = ref.read(currentUserProfileProvider).valueOrNull;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Not logged in',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
+          backgroundColor: AppColors.coral,
+        ),
+      );
+      return;
+    }
+
+    final categoryEnum = GigCategory.values.firstWhere(
+      (c) => c.label == _category,
+      orElse: () => GigCategory.other,
+    );
+
     setState(() => _isPosting = true);
-    // TODO: call FirestoreService.createGig(...)
-    await Future.delayed(const Duration(seconds: 2));
-    if (!mounted) return;
-    setState(() => _isPosting = false);
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Gig posted! 🎉', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
-      backgroundColor: AppColors.violet,
-    ));
+    try {
+      await ref
+          .read(gigServiceProvider)
+          .createGig(
+            creatorId: user.userId,
+            creatorName: user.name,
+            creatorRating: user.rating,
+            title: _titleCtrl.text.trim(),
+            description: _descCtrl.text.trim(),
+            category: categoryEnum,
+            price: int.parse(_priceCtrl.text.trim()),
+            deadline: _deadline!,
+          );
+      if (!mounted) return;
+      context.go('/my-gigs');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gig posted! 🎉',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
+          backgroundColor: AppColors.violet,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isPosting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed: $e',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
+          backgroundColor: AppColors.coral,
+        ),
+      );
+    }
+  }
+
+  Color _gigColor(String cat) {
+    const m = {
+      'Tutoring': AppColors.violet,
+      'Delivery': AppColors.cyan,
+      'Writing': AppColors.lime,
+      'Coding': AppColors.amber,
+      'Errands': AppColors.coral,
+    };
+    return m[cat] ?? const Color(0xFF7777AA);
+  }
+
+  String _gigEmoji(String cat) {
+    const m = {
+      'Tutoring': '📚',
+      'Delivery': '🚚',
+      'Writing': '✍️',
+      'Coding': '💻',
+      'Errands': '🏃',
+      'Other': '⚡',
+    };
+    return m[cat] ?? '⚡';
   }
 }
