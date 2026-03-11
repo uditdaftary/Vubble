@@ -616,55 +616,58 @@ class _ActiveGigCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final catLabel = gig.category.label;
     final catColor = _catColor(gig.category);
-    return SurfaceCard(
-      padding: const EdgeInsets.all(14),
-      child: SizedBox(
-        width: 210,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CategoryBadge(
-                  label: catLabel,
-                  color: catColor,
-                  emoji: gig.category.emoji,
-                ),
-                const Spacer(),
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: _statusColor,
-                    shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: () => _openGigDetail(context),
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(14),
+        child: SizedBox(
+          width: 210,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CategoryBadge(
+                    label: catLabel,
+                    color: catColor,
+                    emoji: gig.category.emoji,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              gig.title,
-              style: AppText.heading(size: 14),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('₹${gig.price}', style: AppText.price(size: 16)),
-                Text(
-                  gig.isOverdue ? 'OVERDUE' : 'Due ${gig.deadlineFormatted}',
-                  style: AppText.body(
-                    size: 11,
-                    color: gig.isOverdue
-                        ? AppColors.coral
-                        : AppColors.textMuted,
+                  const Spacer(),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: _statusColor,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                gig.title,
+                style: AppText.heading(size: 14),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('₹${gig.price}', style: AppText.price(size: 16)),
+                  Text(
+                    gig.isOverdue ? 'OVERDUE' : 'Due ${gig.deadlineFormatted}',
+                    style: AppText.body(
+                      size: 11,
+                      color: gig.isOverdue
+                          ? AppColors.coral
+                          : AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -686,6 +689,87 @@ class _ActiveGigCard extends StatelessWidget {
         return const Color(0xFF7777AA);
     }
   }
+
+  void _openGigDetail(BuildContext context) => showModalBottomSheet(
+    context: context,
+    backgroundColor: AppColors.surface,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (_) => DraggableScrollableSheet(
+      initialChildSize: 0.55,
+      maxChildSize: 0.85,
+      minChildSize: 0.35,
+      expand: false,
+      builder: (_, sc) => SingleChildScrollView(
+        controller: sc,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            Row(
+              children: [
+                CategoryBadge(
+                  label: gig.category.label,
+                  color: _catColor(gig.category),
+                  emoji: gig.category.emoji,
+                ),
+                const Spacer(),
+                Text('₹${gig.price}', style: AppText.price(size: 26)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(gig.title, style: AppText.heading(size: 20)),
+            const SizedBox(height: 10),
+            Text(
+              gig.description,
+              style: AppText.body(
+                size: 14,
+                color: AppColors.textMuted,
+              ).copyWith(height: 1.6),
+            ),
+            const SizedBox(height: 20),
+            _DashDetailRow(
+              icon: Icons.schedule_rounded,
+              label: 'Deadline',
+              value: gig.deadlineFormatted,
+            ),
+            const SizedBox(height: 8),
+            _DashDetailRow(
+              icon: Icons.person_rounded,
+              label: 'Posted by',
+              value: '${gig.creatorName}  ★ ${gig.creatorRating}',
+            ),
+            const SizedBox(height: 8),
+            _DashDetailRow(
+              icon: Icons.info_outline_rounded,
+              label: 'Status',
+              value: gig.status.label,
+            ),
+            const SizedBox(height: 8),
+            _DashDetailRow(
+              icon: Icons.access_time_rounded,
+              label: 'Posted',
+              value: gig.timeAgo,
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 // ── feed tile ─────────────────────────────────
@@ -739,5 +823,34 @@ class _FeedTile extends StatelessWidget {
         ),
       ],
     ),
+  );
+}
+
+// ── detail row for gig bottom sheet ───────────
+class _DashDetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label, value;
+  const _DashDetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, size: 15, color: AppColors.textMuted),
+      const SizedBox(width: 8),
+      Text(
+        '$label: ',
+        style: AppText.body(size: 13, color: AppColors.textMuted),
+      ),
+      Flexible(
+        child: Text(
+          value,
+          style: AppText.body(size: 13).copyWith(fontWeight: FontWeight.w600),
+        ),
+      ),
+    ],
   );
 }

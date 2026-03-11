@@ -10,7 +10,7 @@ class UserModel {
   final String email;
   final String department;
   final String bio;
-  final String registrationNumber;   // ← replaces skills
+  final String registrationNumber; // ← replaces skills
   final String? profilePhotoUrl;
 
   final double rating;
@@ -19,6 +19,7 @@ class UserModel {
   final int completedRentals;
   final int cancellations;
   final int reportCount;
+  final int totalCompleted;
 
   final UserRole role;
   final VerificationStatus verificationStatus;
@@ -45,6 +46,7 @@ class UserModel {
     this.completedRentals = 0,
     this.cancellations = 0,
     this.reportCount = 0,
+    this.totalCompleted = 0,
     this.role = UserRole.student,
     this.verificationStatus = VerificationStatus.unverified,
     this.isSuspended = false,
@@ -65,26 +67,27 @@ class UserModel {
   }
 
   bool get isVerified => verificationStatus == VerificationStatus.verified;
-  bool get isActive   => !isSuspended && !isBanned;
+  bool get isActive => !isSuspended && !isBanned;
 
   // ── Firestore serialization ───────────────────────────────────────────────
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return UserModel(
-      userId:             doc.id,
-      name:               data['name']               ?? '',
-      email:              data['email']              ?? '',
-      department:         data['department']         ?? '',
-      bio:                data['bio']                ?? '',
+      userId: doc.id,
+      name: data['name'] ?? '',
+      email: data['email'] ?? '',
+      department: data['department'] ?? '',
+      bio: data['bio'] ?? '',
       registrationNumber: data['registrationNumber'] ?? '',
-      profilePhotoUrl:    data['profilePhotoUrl'],
-      rating:             (data['rating']            ?? 0.0).toDouble(),
-      totalRatings:       data['totalRatings']        ?? 0,
-      completedGigs:      data['completedGigs']       ?? 0,
-      completedRentals:   data['completedRentals']    ?? 0,
-      cancellations:      data['cancellations']       ?? 0,
-      reportCount:        data['reportCount']         ?? 0,
+      profilePhotoUrl: data['profilePhotoUrl'],
+      rating: (data['rating'] ?? 0.0).toDouble(),
+      totalRatings: data['totalRatings'] ?? 0,
+      completedGigs: data['completedGigs'] ?? 0,
+      completedRentals: data['completedRentals'] ?? 0,
+      cancellations: data['cancellations'] ?? 0,
+      reportCount: data['reportCount'] ?? 0,
+      totalCompleted: data['totalCompleted'] ?? 0,
       role: UserRole.values.firstWhere(
         (r) => r.name == (data['role'] ?? 'student'),
         orElse: () => UserRole.student,
@@ -93,12 +96,12 @@ class UserModel {
         (v) => v.name == (data['verificationStatus'] ?? 'unverified'),
         orElse: () => VerificationStatus.unverified,
       ),
-      isSuspended:     data['isSuspended']     ?? false,
-      isBanned:        data['isBanned']        ?? false,
-      activeGigIds:    List<String>.from(data['activeGigIds']    ?? []),
+      isSuspended: data['isSuspended'] ?? false,
+      isBanned: data['isBanned'] ?? false,
+      activeGigIds: List<String>.from(data['activeGigIds'] ?? []),
       activeRentalIds: List<String>.from(data['activeRentalIds'] ?? []),
-      createdAt:       (data['createdAt'] as Timestamp).toDate(),
-      lastActiveAt:    data['lastActiveAt'] != null
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      lastActiveAt: data['lastActiveAt'] != null
           ? (data['lastActiveAt'] as Timestamp).toDate()
           : null,
     );
@@ -106,26 +109,27 @@ class UserModel {
 
   Map<String, dynamic> toFirestore() {
     return {
-      'name':               name,
-      'email':              email,
-      'department':         department,
-      'bio':                bio,
+      'name': name,
+      'email': email,
+      'department': department,
+      'bio': bio,
       'registrationNumber': registrationNumber,
-      'profilePhotoUrl':    profilePhotoUrl,
-      'rating':             rating,
-      'totalRatings':       totalRatings,
-      'completedGigs':      completedGigs,
-      'completedRentals':   completedRentals,
-      'cancellations':      cancellations,
-      'reportCount':        reportCount,
-      'role':               role.name,
+      'profilePhotoUrl': profilePhotoUrl,
+      'rating': rating,
+      'totalRatings': totalRatings,
+      'completedGigs': completedGigs,
+      'completedRentals': completedRentals,
+      'cancellations': cancellations,
+      'reportCount': reportCount,
+      'totalCompleted': totalCompleted,
+      'role': role.name,
       'verificationStatus': verificationStatus.name,
-      'isSuspended':        isSuspended,
-      'isBanned':           isBanned,
-      'activeGigIds':       activeGigIds,
-      'activeRentalIds':    activeRentalIds,
-      'createdAt':          Timestamp.fromDate(createdAt),
-      'lastActiveAt':       lastActiveAt != null
+      'isSuspended': isSuspended,
+      'isBanned': isBanned,
+      'activeGigIds': activeGigIds,
+      'activeRentalIds': activeRentalIds,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'lastActiveAt': lastActiveAt != null
           ? Timestamp.fromDate(lastActiveAt!)
           : null,
     };
@@ -143,6 +147,7 @@ class UserModel {
     int? completedRentals,
     int? cancellations,
     int? reportCount,
+    int? totalCompleted,
     UserRole? role,
     VerificationStatus? verificationStatus,
     bool? isSuspended,
@@ -152,27 +157,28 @@ class UserModel {
     DateTime? lastActiveAt,
   }) {
     return UserModel(
-      userId:             userId,
-      name:               name               ?? this.name,
-      email:              email,
-      department:         department         ?? this.department,
-      bio:                bio                ?? this.bio,
+      userId: userId,
+      name: name ?? this.name,
+      email: email,
+      department: department ?? this.department,
+      bio: bio ?? this.bio,
       registrationNumber: registrationNumber ?? this.registrationNumber,
-      profilePhotoUrl:    profilePhotoUrl    ?? this.profilePhotoUrl,
-      rating:             rating             ?? this.rating,
-      totalRatings:       totalRatings       ?? this.totalRatings,
-      completedGigs:      completedGigs      ?? this.completedGigs,
-      completedRentals:   completedRentals   ?? this.completedRentals,
-      cancellations:      cancellations      ?? this.cancellations,
-      reportCount:        reportCount        ?? this.reportCount,
-      role:               role               ?? this.role,
+      profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
+      rating: rating ?? this.rating,
+      totalRatings: totalRatings ?? this.totalRatings,
+      completedGigs: completedGigs ?? this.completedGigs,
+      completedRentals: completedRentals ?? this.completedRentals,
+      cancellations: cancellations ?? this.cancellations,
+      reportCount: reportCount ?? this.reportCount,
+      totalCompleted: totalCompleted ?? this.totalCompleted,
+      role: role ?? this.role,
       verificationStatus: verificationStatus ?? this.verificationStatus,
-      isSuspended:        isSuspended        ?? this.isSuspended,
-      isBanned:           isBanned           ?? this.isBanned,
-      activeGigIds:       activeGigIds       ?? this.activeGigIds,
-      activeRentalIds:    activeRentalIds    ?? this.activeRentalIds,
-      createdAt:          createdAt,
-      lastActiveAt:       lastActiveAt       ?? this.lastActiveAt,
+      isSuspended: isSuspended ?? this.isSuspended,
+      isBanned: isBanned ?? this.isBanned,
+      activeGigIds: activeGigIds ?? this.activeGigIds,
+      activeRentalIds: activeRentalIds ?? this.activeRentalIds,
+      createdAt: createdAt,
+      lastActiveAt: lastActiveAt ?? this.lastActiveAt,
     );
   }
 }
