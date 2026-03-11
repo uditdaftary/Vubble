@@ -200,7 +200,7 @@ class _RentalBrowseScreenState extends ConsumerState<RentalBrowseScreen> {
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
         scrollDirection: Axis.horizontal,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemCount: _cats.length,
         itemBuilder: (_, i) {
           final cat = _cats[i];
@@ -792,13 +792,15 @@ class _RentalDetailSheetState extends ConsumerState<_RentalDetailSheet> {
         child: child!,
       ),
     );
-    if (picked != null)
+    if (picked != null) {
       setState(() {
-        if (isStart)
+        if (isStart) {
           _start = picked;
-        else
+        } else {
           _end = picked;
+        }
       });
+    }
   }
 
   Color _catColor(RentalCategory cat) {

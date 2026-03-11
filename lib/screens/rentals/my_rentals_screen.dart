@@ -48,7 +48,7 @@ class _MyRentalsScreenState extends ConsumerState<MyRentalsScreen>
       body: FadeTransition(
         opacity: _fadeAnim,
         child: NestedScrollView(
-          headerSliverBuilder: (_, __) => [_appBar(), _tabBar()],
+          headerSliverBuilder: (_, _) => [_appBar(), _tabBar()],
           body: TabBarView(
             controller: _tabs,
             children: [

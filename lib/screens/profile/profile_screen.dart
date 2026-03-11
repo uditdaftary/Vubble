@@ -60,7 +60,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             );
           }
           return NestedScrollView(
-            headerSliverBuilder: (_, __) => [
+            headerSliverBuilder: (_, _) => [
               _profileHeader(user),
               _statsRow(user),
               _tabBar(),
@@ -588,7 +588,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-      separatorBuilder: (_, __) => const SizedBox(height: 1),
+      separatorBuilder: (_, _) => const SizedBox(height: 1),
       itemCount: displayItems.length,
       itemBuilder: (_, i) => _ActivityRow(
         data: displayItems[i],

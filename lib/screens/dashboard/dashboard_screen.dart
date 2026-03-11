@@ -331,7 +331,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         child: ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           scrollDirection: Axis.horizontal,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          separatorBuilder: (_, _) => const SizedBox(width: 12),
           itemCount: displayGigs.length,
           itemBuilder: (_, i) => _ActiveGigCard(gig: displayGigs[i]),
         ),

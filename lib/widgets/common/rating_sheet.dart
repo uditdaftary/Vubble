@@ -156,7 +156,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                 itemPadding: const EdgeInsets.symmetric(horizontal: 4),
                 unratedColor: AppColors.surfaceHigh,
                 glowColor: AppColors.amber.withOpacity(0.3),
-                itemBuilder: (_, __) =>
+                itemBuilder: (_, _) =>
                     const Icon(Icons.star_rounded, color: AppColors.amber),
                 onRatingUpdate: (rating) {
                   setState(() => _stars = rating.toInt());

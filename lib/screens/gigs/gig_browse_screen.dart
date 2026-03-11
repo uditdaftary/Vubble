@@ -140,7 +140,7 @@ class _GigBrowseScreenState extends ConsumerState<GigBrowseScreen> {
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
         scrollDirection: Axis.horizontal,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemCount: _cats.length,
         itemBuilder: (_, i) {
           final cat = _cats[i];
@@ -215,10 +215,12 @@ class _GigBrowseScreenState extends ConsumerState<GigBrowseScreen> {
       data: (gigs) {
         // Filter out own gigs and already-accepted gigs
         var filtered = gigs.where((g) {
-          if (currentUserId != null && g.creatorId == currentUserId)
+          if (currentUserId != null && g.creatorId == currentUserId) {
             return false;
-          if (currentUserId != null && g.acceptedById == currentUserId)
+          }
+          if (currentUserId != null && g.acceptedById == currentUserId) {
             return false;
+          }
           return true;
         }).toList();
 

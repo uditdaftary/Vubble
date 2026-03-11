@@ -23,7 +23,7 @@ final currentUserProfileProvider = StreamProvider<UserModel?>((ref) {
 
   return authState.when(
     loading: () => const Stream.empty(),
-    error:   (_, __) => const Stream.empty(),
+    error:   (_, _) => const Stream.empty(),
     data: (user) {
       if (user == null) return Stream.value(null);
 

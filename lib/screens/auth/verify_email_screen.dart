@@ -104,7 +104,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
               // ── animated envelope ─────────────────────────
               AnimatedBuilder(
                 animation: Listenable.merge([_pulseAnim, _spinCtrl]),
-                builder: (_, __) => Stack(
+                builder: (_, _) => Stack(
                   alignment: Alignment.center,
                   children: [
                     // outer spinning ring

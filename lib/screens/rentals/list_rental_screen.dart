@@ -503,13 +503,15 @@ class _ListRentalScreenState extends ConsumerState<ListRentalScreen> {
         child: child!,
       ),
     );
-    if (picked != null)
+    if (picked != null) {
       setState(() {
-        if (isFrom)
+        if (isFrom) {
           _availFrom = picked;
-        else
+        } else {
           _availTo = picked;
+        }
       });
+    }
   }
 
   Future<void> _submit() async {

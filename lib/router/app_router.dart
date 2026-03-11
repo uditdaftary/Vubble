@@ -65,31 +65,31 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       // ── Auth ──────────────────────────────────
-      GoRoute(path: '/login',        builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/register',     builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: '/verify-email', builder: (_, __) => const VerifyEmailScreen()),
-      GoRoute(path: '/setup-profile',builder: (_, __) => const SetupProfileScreen()),
+      GoRoute(path: '/login',        builder: (_, _) => const LoginScreen()),
+      GoRoute(path: '/register',     builder: (_, _) => const RegisterScreen()),
+      GoRoute(path: '/verify-email', builder: (_, _) => const VerifyEmailScreen()),
+      GoRoute(path: '/setup-profile',builder: (_, _) => const SetupProfileScreen()),
 
       // ── Main app (shell with bottom nav) ──────
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
-          GoRoute(path: '/dashboard',    builder: (_, __) => const DashboardScreen()),
-          GoRoute(path: '/gigs',         builder: (_, __) => const GigBrowseScreen()),
-          GoRoute(path: '/gigs/post',    builder: (_, __) => const PostGigScreen()),
-          GoRoute(path: '/rentals',      builder: (_, __) => const RentalBrowseScreen()),
-          GoRoute(path: '/rentals/list', builder: (_, __) => const ListRentalScreen()),
-          GoRoute(path: '/profile',      builder: (_, __) => const ProfileScreen()),
-          GoRoute(path: '/notifications',builder: (_, __) => const NotificationsScreen()),
-          GoRoute(path: '/my-gigs',      builder: (_, __) => const MyGigsScreen()),
-          GoRoute(path: '/my-rentals',   builder: (_, __) => const MyRentalsScreen()),
+          GoRoute(path: '/dashboard',    builder: (_, _) => const DashboardScreen()),
+          GoRoute(path: '/gigs',         builder: (_, _) => const GigBrowseScreen()),
+          GoRoute(path: '/gigs/post',    builder: (_, _) => const PostGigScreen()),
+          GoRoute(path: '/rentals',      builder: (_, _) => const RentalBrowseScreen()),
+          GoRoute(path: '/rentals/list', builder: (_, _) => const ListRentalScreen()),
+          GoRoute(path: '/profile',      builder: (_, _) => const ProfileScreen()),
+          GoRoute(path: '/notifications',builder: (_, _) => const NotificationsScreen()),
+          GoRoute(path: '/my-gigs',      builder: (_, _) => const MyGigsScreen()),
+          GoRoute(path: '/my-rentals',   builder: (_, _) => const MyRentalsScreen()),
         ],
       ),
 
       // ── Admin (no bottom nav) ────────────────
-      GoRoute(path: '/admin',         builder: (_, __) => const AdminDashboardScreen()),
-      GoRoute(path: '/admin/users',   builder: (_, __) => const UserManagementScreen()),
-      GoRoute(path: '/admin/reports', builder: (_, __) => const ReportsScreen()),
+      GoRoute(path: '/admin',         builder: (_, _) => const AdminDashboardScreen()),
+      GoRoute(path: '/admin/users',   builder: (_, _) => const UserManagementScreen()),
+      GoRoute(path: '/admin/reports', builder: (_, _) => const ReportsScreen()),
     ],
   );
 });
