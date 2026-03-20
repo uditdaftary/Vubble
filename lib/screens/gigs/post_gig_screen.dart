@@ -246,7 +246,13 @@ class _PostGigScreenState extends ConsumerState<PostGigScreen>
         ),
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+        validator: (v) {
+          if (v == null || v.trim().isEmpty) return 'Required';
+          final n = int.tryParse(v.trim());
+          if (n == null || n < 1) return 'Min ₹1';
+          if (n > 50000) return 'Max ₹50,000';
+          return null;
+        },
         decoration: InputDecoration(
           hintText: '0',
           hintStyle: GoogleFonts.syne(color: AppColors.textMuted, fontSize: 20),

@@ -8,6 +8,7 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/auth/verify_email_screen.dart';
 import '../screens/auth/setup_profile_screen.dart';
+import '../screens/auth/forgot_password_screen.dart';
 
 // App screens
 import '../screens/dashboard/dashboard_screen.dart';
@@ -23,17 +24,37 @@ import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/user_management_screen.dart';
 import '../screens/admin/reports_screen.dart';
 
+// ── Transition helper ────────────────────────
+CustomTransitionPage<void> _tp(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+      final slide = Tween<Offset>(
+        begin: const Offset(0, 0.04),
+        end: Offset.zero,
+      ).animate(fade);
+      return FadeTransition(
+        opacity: fade,
+        child: SlideTransition(position: slide, child: child),
+      );
+    },
+  );
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState    = ref.watch(authStateProvider);
+  final authState = ref.watch(authStateProvider);
   final profileState = ref.watch(currentUserProfileProvider);
 
   return GoRouter(
     initialLocation: '/login',
     redirect: (context, state) {
-      final isLoggedIn     = authState.valueOrNull != null;
-      final profile        = profileState.valueOrNull;
+      final isLoggedIn = authState.valueOrNull != null;
+      final profile = profileState.valueOrNull;
       final profileLoading = profileState.isLoading;
-      final loc            = state.matchedLocation;
+      final loc = state.matchedLocation;
 
       final isOnAuthPage =
           loc.startsWith('/login') ||
@@ -54,10 +75,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // Logged in with profile, on login/register/setup → go to app
-      if (isLoggedIn && profile != null &&
-          (loc == '/login' ||
-           loc == '/register' ||
-           loc == '/setup-profile')) {
+      if (isLoggedIn &&
+          profile != null &&
+          (loc == '/login' || loc == '/register' || loc == '/setup-profile')) {
         return '/dashboard';
       }
 
@@ -65,31 +85,32 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       // ── Auth ──────────────────────────────────
-      GoRoute(path: '/login',        builder: (_, _) => const LoginScreen()),
-      GoRoute(path: '/register',     builder: (_, _) => const RegisterScreen()),
-      GoRoute(path: '/verify-email', builder: (_, _) => const VerifyEmailScreen()),
-      GoRoute(path: '/setup-profile',builder: (_, _) => const SetupProfileScreen()),
+      GoRoute(path: '/login', pageBuilder: (_, s) => _tp(s, const LoginScreen())),
+      GoRoute(path: '/register', pageBuilder: (_, s) => _tp(s, const RegisterScreen())),
+      GoRoute(path: '/verify-email', pageBuilder: (_, s) => _tp(s, const VerifyEmailScreen())),
+      GoRoute(path: '/setup-profile', pageBuilder: (_, s) => _tp(s, const SetupProfileScreen())),
+      GoRoute(path: '/forgot-password', pageBuilder: (_, s) => _tp(s, const ForgotPasswordScreen())),
 
       // ── Main app (shell with bottom nav) ──────
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
-          GoRoute(path: '/dashboard',    builder: (_, _) => const DashboardScreen()),
-          GoRoute(path: '/gigs',         builder: (_, _) => const GigBrowseScreen()),
-          GoRoute(path: '/gigs/post',    builder: (_, _) => const PostGigScreen()),
-          GoRoute(path: '/rentals',      builder: (_, _) => const RentalBrowseScreen()),
-          GoRoute(path: '/rentals/list', builder: (_, _) => const ListRentalScreen()),
-          GoRoute(path: '/profile',      builder: (_, _) => const ProfileScreen()),
-          GoRoute(path: '/notifications',builder: (_, _) => const NotificationsScreen()),
-          GoRoute(path: '/my-gigs',      builder: (_, _) => const MyGigsScreen()),
-          GoRoute(path: '/my-rentals',   builder: (_, _) => const MyRentalsScreen()),
+          GoRoute(path: '/dashboard', pageBuilder: (_, s) => _tp(s, const DashboardScreen())),
+          GoRoute(path: '/gigs', pageBuilder: (_, s) => _tp(s, const GigBrowseScreen())),
+          GoRoute(path: '/gigs/post', pageBuilder: (_, s) => _tp(s, const PostGigScreen())),
+          GoRoute(path: '/rentals', pageBuilder: (_, s) => _tp(s, const RentalBrowseScreen())),
+          GoRoute(path: '/rentals/list', pageBuilder: (_, s) => _tp(s, const ListRentalScreen())),
+          GoRoute(path: '/profile', pageBuilder: (_, s) => _tp(s, const ProfileScreen())),
+          GoRoute(path: '/notifications', pageBuilder: (_, s) => _tp(s, const NotificationsScreen())),
+          GoRoute(path: '/my-gigs', pageBuilder: (_, s) => _tp(s, const MyGigsScreen())),
+          GoRoute(path: '/my-rentals', pageBuilder: (_, s) => _tp(s, const MyRentalsScreen())),
         ],
       ),
 
       // ── Admin (no bottom nav) ────────────────
-      GoRoute(path: '/admin',         builder: (_, _) => const AdminDashboardScreen()),
-      GoRoute(path: '/admin/users',   builder: (_, _) => const UserManagementScreen()),
-      GoRoute(path: '/admin/reports', builder: (_, _) => const ReportsScreen()),
+      GoRoute(path: '/admin', pageBuilder: (_, s) => _tp(s, const AdminDashboardScreen())),
+      GoRoute(path: '/admin/users', pageBuilder: (_, s) => _tp(s, const UserManagementScreen())),
+      GoRoute(path: '/admin/reports', pageBuilder: (_, s) => _tp(s, const ReportsScreen())),
     ],
   );
 });
@@ -102,10 +123,14 @@ class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
   static const _tabs = [
-    _TabItem(path: '/dashboard', icon: Icons.home_rounded,       label: 'Home'),
-    _TabItem(path: '/gigs',      icon: Icons.flash_on_rounded,   label: 'Gigs'),
-    _TabItem(path: '/rentals',   icon: Icons.inventory_2_rounded, label: 'Rentals'),
-    _TabItem(path: '/profile',   icon: Icons.person_rounded,     label: 'Profile'),
+    _TabItem(path: '/dashboard', icon: Icons.home_rounded, label: 'Home'),
+    _TabItem(path: '/gigs', icon: Icons.flash_on_rounded, label: 'Gigs'),
+    _TabItem(
+      path: '/rentals',
+      icon: Icons.swap_horiz_rounded,
+      label: 'Lend & Borrow',
+    ),
+    _TabItem(path: '/profile', icon: Icons.person_rounded, label: 'Profile'),
   ];
 
   int _currentIndex(BuildContext context) {

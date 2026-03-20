@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/rental_model.dart';
+import '../../models/application_model.dart';
 import '../../providers/gig_rental_providers.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/common/rating_sheet.dart';
 import '../../theme/app_theme.dart' hide RentalCategory;
 
 // ─────────────────────────────────────────────
@@ -387,39 +389,146 @@ class _RentalCard extends ConsumerWidget {
 
     // ── OWNER actions ────────────────────────────
     if (role == _RentalRole.owner) {
-      if (rental.isRequested) {
+      if (rental.isAvailable) {
         return [
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  label: 'Reject',
-                  color: AppColors.coral,
-                  icon: Icons.close_rounded,
-                  onTap: () => _confirm(
-                    context,
-                    'Reject this rental request?',
-                    () async {
-                      await service.rejectRental(rental.rentalId);
-                    },
+          // Application count badge
+          if (rental.applicationCount > 0) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+              decoration: BoxDecoration(
+                color: AppColors.cyan.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.cyan.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.people_rounded,
+                    size: 16,
+                    color: AppColors.cyan,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${rental.applicationCount} application${rental.applicationCount > 1 ? "s" : ""}',
+                    style: AppText.body(
+                      size: 13,
+                      color: AppColors.cyan,
+                    ).copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            _ActionButton(
+              label: 'View Applications',
+              color: AppColors.cyan,
+              icon: Icons.visibility_rounded,
+              onTap: () => showModalBottomSheet(
+                context: context,
+                backgroundColor: AppColors.surface,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                builder: (_) => DraggableScrollableSheet(
+                  initialChildSize: 0.6,
+                  maxChildSize: 0.9,
+                  minChildSize: 0.3,
+                  expand: false,
+                  builder: (ctx, sc) => _RentalApplicationsSheet(
+                    rentalId: rental.rentalId,
+                    rental: rental,
+                    scrollController: sc,
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _ActionButton(
-                  label: 'Approve',
-                  color: AppColors.lime,
-                  icon: Icons.check_rounded,
-                  onTap: () =>
-                      _confirm(context, 'Approve rental request?', () async {
-                        await service.approveRental(rental.rentalId);
-                      }),
+            ),
+            const SizedBox(height: 8),
+          ],
+          _ActionButton(
+            label: 'Remove Listing',
+            color: AppColors.coral,
+            icon: Icons.delete_outline_rounded,
+            onTap: () => _confirm(context, 'Remove this listing?', () async {
+              await service.cancelListing(rental.rentalId, userId);
+            }),
+          ),
+        ];
+      }
+      if (rental.isActive) {
+        return [
+          const SizedBox(height: 12),
+          // Handoff confirmation (REQ-03)
+          if (!rental.itemHandedOver)
+            _ActionButton(
+              label: 'Mark Item as Given',
+              color: AppColors.cyan,
+              icon: Icons.handshake_rounded,
+              onTap: () =>
+                  _confirm(context, 'Mark the item as handed over?', () async {
+                    await service.markItemGiven(rental.rentalId);
+                    _snack(context, 'Item marked as given ✅', AppColors.cyan);
+                  }),
+            )
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.lime.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  '✅ Item Handed Over',
+                  style: AppText.body(size: 13, color: AppColors.lime),
                 ),
               ),
-            ],
-          ),
+            ),
+          // Early return (REQ-12)
+          if (rental.earlyReturnRequested) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+              decoration: BoxDecoration(
+                color: AppColors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.amber.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_rounded,
+                    size: 16,
+                    color: AppColors.amber,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Renter requested early return',
+                      style: AppText.body(size: 13, color: AppColors.amber),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            _ActionButton(
+              label: 'Approve Early Return',
+              color: AppColors.lime,
+              icon: Icons.check_circle_rounded,
+              onTap: () => _confirm(context, 'Approve early return?', () async {
+                await service.approveEarlyReturn(rental.rentalId);
+              }),
+            ),
+          ],
         ];
       }
       if (rental.isReturnPending) {
@@ -434,21 +543,38 @@ class _RentalCard extends ConsumerWidget {
               'Confirm you received the item back?',
               () async {
                 await service.confirmReturn(rental.rentalId);
+                if (context.mounted) {
+                  await showRatingSheet(
+                    context,
+                    targetUserId: rental.renterId!,
+                    reviewerUserId: userId,
+                    sourceId: rental.rentalId,
+                    sourceType: 'rental',
+                  );
+                  await service.markOwnerRated(rental.rentalId);
+                }
               },
             ),
           ),
         ];
       }
-      if (rental.isAvailable) {
+      if (rental.isCompleted && !rental.ownerRated) {
         return [
           const SizedBox(height: 12),
           _ActionButton(
-            label: 'Remove Listing',
-            color: AppColors.coral,
-            icon: Icons.delete_outline_rounded,
-            onTap: () => _confirm(context, 'Remove this listing?', () async {
-              await service.cancelListing(rental.rentalId, userId);
-            }),
+            label: 'Rate Renter',
+            color: AppColors.amber,
+            icon: Icons.star_rounded,
+            onTap: () async {
+              await showRatingSheet(
+                context,
+                targetUserId: rental.renterId!,
+                reviewerUserId: userId,
+                sourceId: rental.rentalId,
+                sourceType: 'rental',
+              );
+              await service.markOwnerRated(rental.rentalId);
+            },
           ),
         ];
       }
@@ -459,6 +585,34 @@ class _RentalCard extends ConsumerWidget {
       if (rental.isActive) {
         return [
           const SizedBox(height: 12),
+          // Confirm item received (REQ-03)
+          if (!rental.itemReceived)
+            _ActionButton(
+              label: 'Confirm Item Received',
+              color: AppColors.cyan,
+              icon: Icons.check_box_rounded,
+              onTap: () =>
+                  _confirm(context, 'Confirm you received the item?', () async {
+                    await service.confirmItemReceived(rental.rentalId);
+                    _snack(context, 'Item receipt confirmed ✅', AppColors.cyan);
+                  }),
+            )
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.lime.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  '✅ Item Received',
+                  style: AppText.body(size: 13, color: AppColors.lime),
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
           _ActionButton(
             label: rental.isOverdue
                 ? 'Return Item (Overdue!)'
@@ -469,6 +623,35 @@ class _RentalCard extends ConsumerWidget {
               await service.markReturnRequested(rental.rentalId);
             }),
           ),
+          // Early return (REQ-12)
+          if (!rental.earlyReturnRequested && !rental.isOverdue) ...[
+            const SizedBox(height: 8),
+            _ActionButton(
+              label: 'Request Early Return',
+              color: AppColors.amber,
+              icon: Icons.fast_forward_rounded,
+              onTap: () => _confirm(context, 'Request early return?', () async {
+                await service.requestEarlyReturn(rental.rentalId);
+                _snack(context, 'Early return requested', AppColors.amber);
+              }),
+            ),
+          ] else if (rental.earlyReturnRequested) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  '⏳ Early return requested',
+                  style: AppText.body(size: 13, color: AppColors.amber),
+                ),
+              ),
+            ),
+          ],
         ];
       }
       if (rental.isRequested) {
@@ -478,9 +661,9 @@ class _RentalCard extends ConsumerWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: AppColors.amber.withOpacity(0.1),
+              color: AppColors.amber.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.amber.withOpacity(0.3)),
+              border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -500,6 +683,26 @@ class _RentalCard extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+        ];
+      }
+      if (rental.isCompleted && !rental.renterRated) {
+        return [
+          const SizedBox(height: 12),
+          _ActionButton(
+            label: 'Rate Owner',
+            color: AppColors.amber,
+            icon: Icons.star_rounded,
+            onTap: () async {
+              await showRatingSheet(
+                context,
+                targetUserId: rental.ownerId,
+                reviewerUserId: userId,
+                sourceId: rental.rentalId,
+                sourceType: 'rental',
+              );
+              await service.markRenterRated(rental.rentalId);
+            },
           ),
         ];
       }
@@ -804,4 +1007,272 @@ class _StickyTab extends SliverPersistentHeaderDelegate {
   );
   @override
   bool shouldRebuild(_StickyTab old) => false;
+}
+
+// ─────────────────────────────────────────────
+//  RENTAL APPLICATIONS SHEET (REQ-01)
+// ─────────────────────────────────────────────
+class _RentalApplicationsSheet extends ConsumerWidget {
+  final String rentalId;
+  final RentalModel rental;
+  final ScrollController scrollController;
+  const _RentalApplicationsSheet({
+    required this.rentalId,
+    required this.rental,
+    required this.scrollController,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appsAsync = ref.watch(rentalApplicationsProvider(rentalId));
+    return SingleChildScrollView(
+      controller: scrollController,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Applications', style: AppText.heading(size: 20)),
+          const SizedBox(height: 16),
+          appsAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.cyan,
+                strokeWidth: 2,
+              ),
+            ),
+            error: (e, _) =>
+                Text('Error: $e', style: AppText.body(color: AppColors.coral)),
+            data: (apps) {
+              if (apps.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 40),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        const Text('📭', style: TextStyle(fontSize: 40)),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No applications yet',
+                          style: AppText.heading(size: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return Column(
+                children: apps
+                    .map(
+                      (app) => _RentalApplicantTile(
+                        app: app,
+                        rentalId: rentalId,
+                        rental: rental,
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RentalApplicantTile extends ConsumerWidget {
+  final ApplicationModel app;
+  final String rentalId;
+  final RentalModel rental;
+  const _RentalApplicantTile({
+    required this.app,
+    required this.rentalId,
+    required this.rental,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceHigh,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.cyan.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    app.applicantName.isNotEmpty
+                        ? app.applicantName[0].toUpperCase()
+                        : '?',
+                    style: GoogleFonts.syne(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.cyan,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(app.applicantName, style: AppText.heading(size: 14)),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 13,
+                          color: AppColors.amber,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          app.applicantRating.toStringAsFixed(1),
+                          style: AppText.body(
+                            size: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (app.isPending)
+                GestureDetector(
+                  onTap: () async {
+                    // Pick rental start date
+                    final start = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 60)),
+                      helpText: 'Select Rental Start Date',
+                      builder: (ctx, child) => Theme(
+                        data: ThemeData.dark().copyWith(
+                          colorScheme: const ColorScheme.dark(
+                            primary: AppColors.cyan,
+                            surface: AppColors.surface,
+                          ),
+                        ),
+                        child: child!,
+                      ),
+                    );
+                    if (start == null || !context.mounted) return;
+                    // Pick rental end date
+                    final end = await showDatePicker(
+                      context: context,
+                      initialDate: start,
+                      firstDate: start,
+                      lastDate: start.add(const Duration(days: 60)),
+                      helpText: 'Select Rental End Date',
+                      builder: (ctx, child) => Theme(
+                        data: ThemeData.dark().copyWith(
+                          colorScheme: const ColorScheme.dark(
+                            primary: AppColors.cyan,
+                            surface: AppColors.surface,
+                          ),
+                        ),
+                        child: child!,
+                      ),
+                    );
+                    if (end == null || !context.mounted) return;
+
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => _ConfirmDialog(
+                        message:
+                            'Select ${app.applicantName}?\n${start.day}/${start.month} → ${end.day}/${end.month}',
+                      ),
+                    );
+                    if (confirm == true) {
+                      await ref
+                          .read(rentalServiceProvider)
+                          .selectRentalApplicant(
+                            rentalId: rentalId,
+                            applicantUserId: app.applicantId,
+                            rentalStart: start,
+                            rentalEnd: end,
+                          );
+                      if (context.mounted) Navigator.pop(context);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0099BB), AppColors.cyan],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Select',
+                      style: GoogleFonts.syne(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: app.isAccepted
+                        ? AppColors.lime.withValues(alpha: 0.15)
+                        : AppColors.coral.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    app.status.toUpperCase(),
+                    style: AppText.label(
+                      size: 10,
+                      color: app.isAccepted ? AppColors.lime : AppColors.coral,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            app.message,
+            style: AppText.body(
+              size: 13,
+              color: AppColors.textMuted,
+            ).copyWith(height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
 }

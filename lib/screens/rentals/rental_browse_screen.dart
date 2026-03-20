@@ -545,13 +545,36 @@ class _RentalDetailSheet extends ConsumerStatefulWidget {
 class _RentalDetailSheetState extends ConsumerState<_RentalDetailSheet> {
   DateTime? _start;
   DateTime? _end;
-  bool _isRequesting = false;
+  bool _isApplying = false;
+  bool _hasApplied = false;
+  final _messageCtrl = TextEditingController();
 
-  int get _days => (_start != null && _end != null && _end!.isAfter(_start!))
-      ? _end!.difference(_start!).inDays
+  int get _days => (_start != null && _end != null && !_end!.isBefore(_start!))
+      ? _end!.difference(_start!).inDays + 1
       : 0;
 
   int get _totalCost => _days * widget.rental.dailyRate + widget.rental.deposit;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfApplied();
+  }
+
+  Future<void> _checkIfApplied() async {
+    final user = ref.read(currentUserProfileProvider).valueOrNull;
+    if (user == null) return;
+    final applied = await ref
+        .read(rentalServiceProvider)
+        .hasUserAppliedToRental(widget.rental.rentalId, user.userId);
+    if (mounted) setState(() => _hasApplied = applied);
+  }
+
+  @override
+  void dispose() {
+    _messageCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -717,41 +740,87 @@ class _RentalDetailSheetState extends ConsumerState<_RentalDetailSheet> {
             ),
           ],
           const SizedBox(height: 24),
-          GradientButton(
-            label: _days > 0 ? 'Request Rental  →' : 'Pick Dates First',
-            width: double.infinity,
-            isLoading: _isRequesting,
-            colors: _days > 0
-                ? [const Color(0xFF0099BB), AppColors.cyan]
-                : [AppColors.border, AppColors.border],
-            onTap: _days > 0 ? _requestRental : null,
-          ),
+          // ── Application message field ──
+          if (!_hasApplied) ...[
+            Text('Your Application', style: AppText.heading(size: 16)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _messageCtrl,
+              style: AppText.input(),
+              maxLines: 3,
+              maxLength: 300,
+              decoration: const InputDecoration(
+                hintText: 'Why do you need this item? (10-300 chars)',
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (_hasApplied)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Center(
+                child: Text(
+                  '✅ Already Applied',
+                  style: AppText.label(size: 14, color: AppColors.textMuted),
+                ),
+              ),
+            )
+          else
+            GradientButton(
+              label: _days > 0 ? 'Apply for Rental  →' : 'Pick Dates First',
+              width: double.infinity,
+              isLoading: _isApplying,
+              colors: _days > 0
+                  ? [const Color(0xFF0099BB), AppColors.cyan]
+                  : [AppColors.border, AppColors.border],
+              onTap: _days > 0 ? _applyToRental : null,
+            ),
         ],
       ),
     );
   }
 
-  Future<void> _requestRental() async {
+  Future<void> _applyToRental() async {
+    final msg = _messageCtrl.text.trim();
+    if (msg.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Message must be at least 10 characters',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
+          backgroundColor: AppColors.coral,
+        ),
+      );
+      return;
+    }
+
     final user = ref.read(currentUserProfileProvider).valueOrNull;
     if (user == null || _start == null || _end == null) return;
 
-    setState(() => _isRequesting = true);
+    setState(() => _isApplying = true);
     try {
       await ref
           .read(rentalServiceProvider)
-          .requestRental(
+          .applyToRental(
             rentalId: widget.rental.rentalId,
-            renterId: user.userId,
-            renterName: user.name,
-            rentalStart: _start!,
-            rentalEnd: _end!,
+            userId: user.userId,
+            userName: user.name,
+            userRating: user.rating,
+            message: msg,
           );
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Rental request sent! 📦',
+            'Application sent! 📦',
             style: GoogleFonts.plusJakartaSans(color: Colors.white),
           ),
           backgroundColor: AppColors.cyan,
@@ -759,7 +828,7 @@ class _RentalDetailSheetState extends ConsumerState<_RentalDetailSheet> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isRequesting = false);
+      setState(() => _isApplying = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -775,12 +844,8 @@ class _RentalDetailSheetState extends ConsumerState<_RentalDetailSheet> {
   Future<void> _pickDate({required bool isStart}) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: (isStart ? DateTime.now() : (_start ?? DateTime.now())).add(
-        const Duration(days: 1),
-      ),
-      firstDate: isStart
-          ? DateTime.now()
-          : (_start ?? DateTime.now()).add(const Duration(days: 1)),
+      initialDate: isStart ? DateTime.now() : (_start ?? DateTime.now()),
+      firstDate: isStart ? DateTime.now() : (_start ?? DateTime.now()),
       lastDate: DateTime.now().add(const Duration(days: 60)),
       builder: (ctx, child) => Theme(
         data: ThemeData.dark().copyWith(

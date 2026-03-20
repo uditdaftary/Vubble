@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/gig_model.dart';
+import '../../models/application_model.dart';
 import '../../providers/gig_rental_providers.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/common/rating_sheet.dart';
 import '../../theme/app_theme.dart' hide GigCategory;
 
 // ─────────────────────────────────────────────
@@ -323,6 +325,62 @@ class _GigCard extends ConsumerWidget {
       if (gig.isOpen) {
         return [
           const SizedBox(height: 12),
+          // Application count badge
+          if (gig.applicationCount > 0) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+              decoration: BoxDecoration(
+                color: AppColors.violet.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.violet.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.people_rounded,
+                    size: 16,
+                    color: AppColors.violet,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${gig.applicationCount} application${gig.applicationCount > 1 ? "s" : ""}',
+                    style: AppText.body(
+                      size: 13,
+                      color: AppColors.violet,
+                    ).copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            _ActionButton(
+              label: 'View Applications',
+              color: AppColors.violet,
+              icon: Icons.visibility_rounded,
+              onTap: () => showModalBottomSheet(
+                context: context,
+                backgroundColor: AppColors.surface,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                builder: (_) => DraggableScrollableSheet(
+                  initialChildSize: 0.6,
+                  maxChildSize: 0.9,
+                  minChildSize: 0.3,
+                  expand: false,
+                  builder: (ctx, sc) => _ApplicationsSheet(
+                    gigId: gig.gigId,
+                    scrollController: sc,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           _ActionButton(
             label: 'Cancel Gig',
             color: AppColors.coral,
@@ -330,6 +388,46 @@ class _GigCard extends ConsumerWidget {
             onTap: () => _confirm(context, 'Cancel this gig?', () async {
               await service.cancelGig(gig.gigId, userId);
             }),
+          ),
+        ];
+      }
+      if (gig.isInProgress && gig.earlyCompletionRequested) {
+        return [
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+            decoration: BoxDecoration(
+              color: AppColors.amber.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.info_rounded,
+                  size: 16,
+                  color: AppColors.amber,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Executor requested early completion',
+                    style: AppText.body(size: 13, color: AppColors.amber),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          _ActionButton(
+            label: 'Approve Early Completion',
+            color: AppColors.lime,
+            icon: Icons.check_circle_rounded,
+            onTap: () =>
+                _confirm(context, 'Approve early completion?', () async {
+                  await service.approveEarlyCompletion(gig.gigId);
+                }),
           ),
         ];
       }
@@ -343,7 +441,37 @@ class _GigCard extends ConsumerWidget {
             onTap: () =>
                 _confirm(context, 'Mark this gig as complete?', () async {
                   await service.closeGig(gig.gigId);
+                  if (context.mounted) {
+                    await showRatingSheet(
+                      context,
+                      targetUserId: gig.acceptedById!,
+                      reviewerUserId: userId,
+                      sourceId: gig.gigId,
+                      sourceType: 'gig',
+                    );
+                    await service.markCreatorRated(gig.gigId);
+                  }
                 }),
+          ),
+        ];
+      }
+      if (gig.isClosed && !gig.creatorRated) {
+        return [
+          const SizedBox(height: 12),
+          _ActionButton(
+            label: 'Rate Executor',
+            color: AppColors.amber,
+            icon: Icons.star_rounded,
+            onTap: () async {
+              await showRatingSheet(
+                context,
+                targetUserId: gig.acceptedById!,
+                reviewerUserId: userId,
+                sourceId: gig.gigId,
+                sourceType: 'gig',
+              );
+              await service.markCreatorRated(gig.gigId);
+            },
           ),
         ];
       }
@@ -376,6 +504,59 @@ class _GigCard extends ConsumerWidget {
                 _confirm(context, 'Submit for creator review?', () async {
                   await service.markComplete(gig.gigId);
                 }),
+          ),
+          if (!gig.earlyCompletionRequested) ...[
+            const SizedBox(height: 8),
+            _ActionButton(
+              label: 'Request Early Completion',
+              color: AppColors.amber,
+              icon: Icons.fast_forward_rounded,
+              onTap: () =>
+                  _confirm(context, 'Request early completion?', () async {
+                    await service.requestEarlyCompletion(gig.gigId);
+                    _snack(
+                      context,
+                      'Early completion requested',
+                      AppColors.amber,
+                    );
+                  }),
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  '⏳ Early completion requested',
+                  style: AppText.body(size: 13, color: AppColors.amber),
+                ),
+              ),
+            ),
+          ],
+        ];
+      }
+      if (gig.isClosed && !gig.executorRated) {
+        return [
+          const SizedBox(height: 12),
+          _ActionButton(
+            label: 'Rate Creator',
+            color: AppColors.amber,
+            icon: Icons.star_rounded,
+            onTap: () async {
+              await showRatingSheet(
+                context,
+                targetUserId: gig.creatorId,
+                reviewerUserId: userId,
+                sourceId: gig.gigId,
+                sourceType: 'gig',
+              );
+              await service.markExecutorRated(gig.gigId);
+            },
           ),
         ];
       }
@@ -646,4 +827,219 @@ class _StickyTab extends SliverPersistentHeaderDelegate {
   );
   @override
   bool shouldRebuild(_StickyTab old) => false;
+}
+
+// ─────────────────────────────────────────────
+//  APPLICATIONS SHEET (REQ-01)
+// ─────────────────────────────────────────────
+class _ApplicationsSheet extends ConsumerWidget {
+  final String gigId;
+  final ScrollController scrollController;
+  const _ApplicationsSheet({
+    required this.gigId,
+    required this.scrollController,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appsAsync = ref.watch(gigApplicationsProvider(gigId));
+    return SingleChildScrollView(
+      controller: scrollController,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Applications', style: AppText.heading(size: 20)),
+          const SizedBox(height: 16),
+          appsAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.violet,
+                strokeWidth: 2,
+              ),
+            ),
+            error: (e, _) =>
+                Text('Error: $e', style: AppText.body(color: AppColors.coral)),
+            data: (apps) {
+              if (apps.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 40),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        const Text('📭', style: TextStyle(fontSize: 40)),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No applications yet',
+                          style: AppText.heading(size: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return Column(
+                children: apps
+                    .map((app) => _ApplicantTile(app: app, gigId: gigId))
+                    .toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ApplicantTile extends ConsumerWidget {
+  final ApplicationModel app;
+  final String gigId;
+  const _ApplicantTile({required this.app, required this.gigId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceHigh,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.violet.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    app.applicantName.isNotEmpty
+                        ? app.applicantName[0].toUpperCase()
+                        : '?',
+                    style: GoogleFonts.syne(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.violet,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(app.applicantName, style: AppText.heading(size: 14)),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 13,
+                          color: AppColors.amber,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          app.applicantRating.toStringAsFixed(1),
+                          style: AppText.body(
+                            size: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (app.isPending)
+                GestureDetector(
+                  onTap: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => _ConfirmDialog(
+                        message: 'Select ${app.applicantName} for this gig?',
+                      ),
+                    );
+                    if (confirm == true) {
+                      await ref
+                          .read(gigServiceProvider)
+                          .selectApplicant(
+                            gigId: gigId,
+                            applicantUserId: app.applicantId,
+                          );
+                      if (context.mounted) Navigator.pop(context);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF7C3AED), AppColors.violet],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Select',
+                      style: GoogleFonts.syne(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: app.isAccepted
+                        ? AppColors.lime.withValues(alpha: 0.15)
+                        : AppColors.coral.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    app.status.toUpperCase(),
+                    style: AppText.label(
+                      size: 10,
+                      color: app.isAccepted ? AppColors.lime : AppColors.coral,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            app.message,
+            style: AppText.body(
+              size: 13,
+              color: AppColors.textMuted,
+            ).copyWith(height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
 }

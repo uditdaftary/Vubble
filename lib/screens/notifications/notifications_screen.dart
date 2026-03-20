@@ -95,11 +95,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
       switch (notif.type) {
         case 'gig_accepted':
         case 'completed':
-          context.push('/gigs');
+        case 'application_selected':
+        case 'early_completion':
+          context.push('/my-gigs');
           break;
         case 'rental_requested':
         case 'rental_approved':
-          context.push('/rentals');
+        case 'early_return':
+          context.push('/my-rentals');
+          break;
+        case 'rating_received':
+          context.push('/profile');
           break;
         default:
           break;

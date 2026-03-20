@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/gig_model.dart';
 import '../../models/rental_model.dart';
+import '../../models/transaction_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/gig_rental_providers.dart';
 import '../../theme/app_theme.dart' hide GigCategory, RentalCategory;
@@ -24,7 +25,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 4, vsync: this);
     _tabs.addListener(() => setState(() {}));
   }
 
@@ -67,7 +68,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ],
             body: TabBarView(
               controller: _tabs,
-              children: [_reviewsTab(user), _listingsTab(), _activityTab()],
+              children: [_reviewsTab(user), _listingsTab(), _transactionsTab(user), _activityTab()],
             ),
           );
         },
@@ -331,6 +332,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         tabs: const [
           Tab(text: 'Reviews'),
           Tab(text: 'Listings'),
+          Tab(text: 'Transactions'),
           Tab(text: 'Activity'),
         ],
       ),
@@ -523,6 +525,94 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       },
     );
   }
+
+  // ── transactions tab ──────────────────────────
+  Widget _transactionsTab(user) {
+    final txAsync = ref.watch(userTransactionsProvider(user.userId));
+    final earningsAsync = ref.watch(userEarningsProvider(user.userId));
+    final spendingAsync = ref.watch(userSpendingProvider(user.userId));
+
+    return txAsync.when(
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: AppColors.violet, strokeWidth: 2),
+      ),
+      error: (e, _) => Center(
+        child: Text('Error: $e', style: AppText.body(color: AppColors.coral)),
+      ),
+      data: (transactions) {
+        final earningsList = earningsAsync.valueOrNull ?? <TransactionModel>[];
+        final spendingList = spendingAsync.valueOrNull ?? <TransactionModel>[];
+        final totalEarnings = earningsList.fold<double>(0, (sum, tx) => sum + tx.netAmount);
+        final totalSpending = spendingList.fold<double>(0, (sum, tx) => sum + tx.amount);
+
+        if (transactions.isEmpty) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+            children: [
+              _txSummaryRow(totalEarnings, totalSpending),
+              const SizedBox(height: 40),
+              const Center(child: Text('💸', style: TextStyle(fontSize: 42))),
+              const SizedBox(height: 12),
+              Center(child: Text('No transactions yet', style: AppText.heading(size: 16))),
+              const SizedBox(height: 6),
+              Center(
+                child: Text(
+                  'Your earnings and spending will appear here.',
+                  textAlign: TextAlign.center,
+                  style: AppText.body(size: 13, color: AppColors.textMuted),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+          itemCount: transactions.length + 1,
+          itemBuilder: (_, i) {
+            if (i == 0) return _txSummaryRow(totalEarnings, totalSpending);
+            final tx = transactions[i - 1];
+            return _TransactionTile(tx: tx);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _txSummaryRow(double earnings, double spending) => Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: Row(
+      children: [
+        Expanded(
+          child: SurfaceCard(
+            child: Column(
+              children: [
+                const Text('💰', style: TextStyle(fontSize: 20)),
+                const SizedBox(height: 6),
+                Text('₹${earnings.toStringAsFixed(0)}',
+                  style: GoogleFonts.syne(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.lime)),
+                Text('Earned', style: AppText.body(size: 11, color: AppColors.textMuted)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SurfaceCard(
+            child: Column(
+              children: [
+                const Text('💳', style: TextStyle(fontSize: 20)),
+                const SizedBox(height: 6),
+                Text('₹${spending.toStringAsFixed(0)}',
+                  style: GoogleFonts.syne(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.coral)),
+                Text('Spent', style: AppText.body(size: 11, color: AppColors.textMuted)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
   // ── activity tab ──────────────────────────────
   Widget _activityTab() {
@@ -997,4 +1087,76 @@ class _ActivityRow extends StatelessWidget {
       ],
     ),
   );
+}
+
+// ─────────────────────────────────────────────
+//  TRANSACTION TILE (REQ-07)
+// ─────────────────────────────────────────────
+class _TransactionTile extends StatelessWidget {
+  final TransactionModel tx;
+  const _TransactionTile({required this.tx});
+
+  @override
+  Widget build(BuildContext context) {
+    final isGig = tx.type == 'gig';
+    final color = isGig ? AppColors.violet : AppColors.cyan;
+    final icon = isGig ? Icons.flash_on_rounded : Icons.swap_horiz_rounded;
+    final date = '${tx.createdAt.day}/${tx.createdAt.month}/${tx.createdAt.year}';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tx.referenceName ?? (isGig ? 'Gig' : 'Rental'),
+                  style: AppText.body(size: 13).copyWith(fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 3),
+                Text(date, style: AppText.body(size: 11, color: AppColors.textMuted)),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '\u20b9${tx.amount}',
+                style: GoogleFonts.syne(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              if (tx.platformFee > 0)
+                Text(
+                  'Net: \u20b9${tx.netAmount}',
+                  style: AppText.body(size: 10, color: AppColors.lime),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

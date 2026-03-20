@@ -519,7 +519,30 @@ class _GigDetailSheet extends ConsumerStatefulWidget {
 }
 
 class _GigDetailSheetState extends ConsumerState<_GigDetailSheet> {
-  bool _isAccepting = false;
+  bool _isApplying = false;
+  bool _hasApplied = false;
+  final _messageCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfApplied();
+  }
+
+  Future<void> _checkIfApplied() async {
+    final user = ref.read(currentUserProfileProvider).valueOrNull;
+    if (user == null) return;
+    final applied = await ref
+        .read(gigServiceProvider)
+        .hasUserApplied(widget.gig.gigId, user.userId);
+    if (mounted) setState(() => _hasApplied = applied);
+  }
+
+  @override
+  void dispose() {
+    _messageCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -627,13 +650,45 @@ class _GigDetailSheetState extends ConsumerState<_GigDetailSheet> {
             ),
           ),
           const SizedBox(height: 24),
+          // ── Application message field ──
+          if (!_hasApplied) ...[
+            Text('Your Application', style: AppText.heading(size: 16)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _messageCtrl,
+              style: AppText.input(),
+              maxLines: 3,
+              maxLength: 300,
+              decoration: const InputDecoration(
+                hintText: 'Why are you the best fit? (10-300 chars)',
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           // CTA
-          GradientButton(
-            label: 'Accept This Gig  →',
-            width: double.infinity,
-            isLoading: _isAccepting,
-            onTap: _acceptGig,
-          ),
+          if (_hasApplied)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Center(
+                child: Text(
+                  '✅ Already Applied',
+                  style: AppText.label(size: 14, color: AppColors.textMuted),
+                ),
+              ),
+            )
+          else
+            GradientButton(
+              label: 'Apply to This Gig  →',
+              width: double.infinity,
+              isLoading: _isApplying,
+              onTap: _applyToGig,
+            ),
           const SizedBox(height: 12),
           // Report
           Center(
@@ -655,25 +710,41 @@ class _GigDetailSheetState extends ConsumerState<_GigDetailSheet> {
     );
   }
 
-  Future<void> _acceptGig() async {
+  Future<void> _applyToGig() async {
+    final msg = _messageCtrl.text.trim();
+    if (msg.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Message must be at least 10 characters',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
+          backgroundColor: AppColors.coral,
+        ),
+      );
+      return;
+    }
+
     final user = ref.read(currentUserProfileProvider).valueOrNull;
     if (user == null) return;
 
-    setState(() => _isAccepting = true);
+    setState(() => _isApplying = true);
     try {
       await ref
           .read(gigServiceProvider)
-          .acceptGig(
+          .applyToGig(
             gigId: widget.gig.gigId,
-            executorId: user.userId,
-            executorName: user.name,
+            userId: user.userId,
+            userName: user.name,
+            userRating: user.rating,
+            message: msg,
           );
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Gig accepted! 🎉',
+            'Application sent! 🎉',
             style: GoogleFonts.plusJakartaSans(color: Colors.white),
           ),
           backgroundColor: AppColors.violet,
@@ -681,11 +752,11 @@ class _GigDetailSheetState extends ConsumerState<_GigDetailSheet> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isAccepting = false);
+      setState(() => _isApplying = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Failed to accept: $e',
+            'Failed to apply: $e',
             style: GoogleFonts.plusJakartaSans(color: Colors.white),
           ),
           backgroundColor: AppColors.coral,

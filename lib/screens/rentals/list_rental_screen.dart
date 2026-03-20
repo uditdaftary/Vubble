@@ -325,7 +325,13 @@ class _ListRentalScreenState extends ConsumerState<ListRentalScreen> {
         ),
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+        validator: (v) {
+          if (v == null || v.trim().isEmpty) return 'Required';
+          final n = int.tryParse(v.trim());
+          if (n == null || n < 1) return 'Min ₹1';
+          if (n > 10000) return 'Max ₹10,000';
+          return null;
+        },
         decoration: InputDecoration(
           hintText: '0',
           hintStyle: GoogleFonts.syne(color: AppColors.textMuted, fontSize: 20),

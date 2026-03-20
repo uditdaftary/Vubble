@@ -75,6 +75,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 _header(user),
                 _statsRow(user),
                 _quickActions(),
+                _sectionTitle('🏆 Leaderboard'),
+                _leaderboardSection(),
                 _sectionTitle(
                   'Active Gigs',
                   onSeeAll: () => context.push('/my-gigs'),
@@ -240,6 +242,94 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       ),
     ),
   );
+
+  // ── leaderboard ────────────────────────────────
+  Widget _leaderboardSection() {
+    final lbAsync = ref.watch(leaderboardProvider);
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: lbAsync.when(
+          loading: () => const SizedBox(
+            height: 80,
+            child: Center(child: CircularProgressIndicator(color: AppColors.amber, strokeWidth: 2)),
+          ),
+          error: (e, _) => Text('Error: $e', style: AppText.body(color: AppColors.coral)),
+          data: (users) {
+            if (users.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text('No data yet', style: AppText.body(size: 13, color: AppColors.textMuted)),
+                ),
+              );
+            }
+            final top5 = users.take(5).toList();
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: top5.asMap().entries.map((entry) {
+                  final rank = entry.key + 1;
+                  final user = entry.value;
+                  final rankColors = [AppColors.amber, const Color(0xFFC0C0C0), const Color(0xFFCD7F32)];
+                  final rankColor = rank <= 3 ? rankColors[rank - 1] : AppColors.textMuted;
+                  final rankEmoji = rank == 1 ? '🥇' : rank == 2 ? '🥈' : rank == 3 ? '🥉' : '#$rank';
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 32,
+                          child: rank <= 3
+                              ? Text(rankEmoji, style: const TextStyle(fontSize: 18))
+                              : Text('#$rank', style: AppText.label(size: 13, color: rankColor)),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          width: 30, height: 30,
+                          decoration: BoxDecoration(
+                            color: rankColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                              style: GoogleFonts.syne(fontSize: 13, fontWeight: FontWeight.w700, color: rankColor),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(user.name, style: AppText.body(size: 13).copyWith(fontWeight: FontWeight.w600)),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: rankColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${user.totalCompleted}',
+                            style: GoogleFonts.syne(fontSize: 13, fontWeight: FontWeight.w700, color: rankColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
   // ── section title ─────────────────────────────
   Widget _sectionTitle(String title, {VoidCallback? onSeeAll}) =>
