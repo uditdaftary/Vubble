@@ -247,9 +247,9 @@ class _ListRentalScreenState extends ConsumerState<ListRentalScreen> {
   Widget _earningsTip() => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: AppColors.lime.withOpacity(0.07),
+      color: AppColors.lime.withValues(alpha: 0.07),
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.lime.withOpacity(0.25)),
+      border: Border.all(color: AppColors.lime.withValues(alpha: 0.25)),
     ),
     child: Row(
       children: [
@@ -260,7 +260,7 @@ class _ListRentalScreenState extends ConsumerState<ListRentalScreen> {
             'Items that list with clear photos + condition notes get 3× more requests.',
             style: AppText.body(
               size: 13,
-              color: AppColors.lime.withOpacity(0.85),
+              color: AppColors.lime.withValues(alpha: 0.85),
             ).copyWith(height: 1.4),
           ),
         ),
@@ -372,7 +372,7 @@ class _ListRentalScreenState extends ConsumerState<ListRentalScreen> {
             fontWeight: FontWeight.w800,
           ),
           fillColor: _noDeposit
-              ? AppColors.border.withOpacity(0.4)
+              ? AppColors.border.withValues(alpha: 0.4)
               : AppColors.surfaceHigh,
         ),
       ),
@@ -387,9 +387,9 @@ class _ListRentalScreenState extends ConsumerState<ListRentalScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cyan.withOpacity(0.3)),
+        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
         boxShadow: [
-          BoxShadow(color: AppColors.cyan.withOpacity(0.06), blurRadius: 16),
+          BoxShadow(color: AppColors.cyan.withValues(alpha: 0.06), blurRadius: 16),
         ],
       ),
       child: Column(
@@ -407,7 +407,7 @@ class _ListRentalScreenState extends ConsumerState<ListRentalScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.lime.withOpacity(0.12),
+                  color: AppColors.lime.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
