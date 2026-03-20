@@ -170,7 +170,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.violet.withOpacity(0.15),
+                          color: AppColors.violet.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -313,7 +313,7 @@ class _NotificationTile extends StatelessWidget {
           border: Border.all(
             color: notification.isRead
                 ? AppColors.border
-                : color.withOpacity(0.25),
+                : color.withValues(alpha: 0.25),
           ),
         ),
         child: Row(
@@ -323,7 +323,7 @@ class _NotificationTile extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: color, size: 20),
