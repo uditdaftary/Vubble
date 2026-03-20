@@ -200,7 +200,7 @@ class _BottomNav extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: selected
-                        ? const Color(0xFF7B2FFF).withOpacity(0.15)
+                        ? const Color(0xFF7B2FFF).withValues(alpha: 0.15)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
