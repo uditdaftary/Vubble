@@ -157,7 +157,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                   vertical: 3,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.violet.withOpacity(0.2),
+                                  color: AppColors.violet.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -206,10 +206,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.cyan.withOpacity(0.1),
+                        color: AppColors.cyan.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: AppColors.cyan.withOpacity(0.3),
+                          color: AppColors.cyan.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
@@ -793,9 +793,9 @@ class _IconBtn extends StatelessWidget {
       width: 38,
       height: 38,
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
+        color: Colors.black.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Icon(icon, size: 18, color: AppColors.textPrimary),
     ),
@@ -1036,9 +1036,9 @@ class _ActivityRow extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: data.color.withOpacity(0.12),
+                color: data.color.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
-                border: Border.all(color: data.color.withOpacity(0.3)),
+                border: Border.all(color: data.color.withValues(alpha: 0.3)),
               ),
               child: Center(
                 child: Text(data.emoji, style: const TextStyle(fontSize: 16)),
@@ -1077,7 +1077,7 @@ class _ActivityRow extends StatelessWidget {
                   data.time,
                   style: AppText.body(
                     size: 11,
-                    color: AppColors.textMuted.withOpacity(0.7),
+                    color: AppColors.textMuted.withValues(alpha: 0.7),
                   ),
                 ),
               ],
