@@ -117,7 +117,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.violet.withOpacity(0.18),
+                          color: AppColors.violet.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
