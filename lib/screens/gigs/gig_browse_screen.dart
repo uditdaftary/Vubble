@@ -298,7 +298,7 @@ class _GigBrowseScreenState extends ConsumerState<GigBrowseScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.violet.withOpacity(0.4),
+            color: AppColors.violet.withValues(alpha: 0.4),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -798,7 +798,7 @@ class _MiniAvatar extends StatelessWidget {
     width: size,
     height: size,
     decoration: BoxDecoration(
-      gradient: LinearGradient(colors: [color.withOpacity(0.7), color]),
+      gradient: LinearGradient(colors: [color.withValues(alpha: 0.7), color]),
       shape: BoxShape.circle,
     ),
     child: Center(

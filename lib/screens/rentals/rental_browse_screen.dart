@@ -110,7 +110,7 @@ class _RentalBrowseScreenState extends ConsumerState<RentalBrowseScreen> {
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.violet.withOpacity(0.3)),
+          border: Border.all(color: AppColors.violet.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -360,7 +360,7 @@ class _RentalBrowseScreenState extends ConsumerState<RentalBrowseScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.cyan.withOpacity(0.35),
+            color: AppColors.cyan.withValues(alpha: 0.35),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -435,9 +435,9 @@ class _RentalCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: cc.withOpacity(0.12),
+                color: cc.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: cc.withOpacity(0.25)),
+                border: Border.all(color: cc.withValues(alpha: 0.25)),
               ),
               child: Center(
                 child: Text(
@@ -465,7 +465,7 @@ class _RentalCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.lime.withOpacity(0.12),
+                color: AppColors.lime.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -605,9 +605,9 @@ class _RentalDetailSheetState extends ConsumerState<_RentalDetailSheet> {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: cc.withOpacity(0.12),
+                  color: cc.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: cc.withOpacity(0.3)),
+                  border: Border.all(color: cc.withValues(alpha: 0.3)),
                 ),
                 child: Center(
                   child: Text(
@@ -716,7 +716,7 @@ class _RentalDetailSheetState extends ConsumerState<_RentalDetailSheet> {
             const SizedBox(height: 16),
             SurfaceCard(
               padding: const EdgeInsets.all(14),
-              borderColor: AppColors.violet.withOpacity(0.3),
+              borderColor: AppColors.violet.withValues(alpha: 0.3),
               child: Row(
                 children: [
                   Column(
@@ -902,9 +902,9 @@ class _PriceChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.08),
+      color: color.withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: color.withOpacity(0.2)),
+      border: Border.all(color: color.withValues(alpha: 0.2)),
     ),
     child: Column(
       children: [

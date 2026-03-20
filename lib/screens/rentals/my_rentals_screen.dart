@@ -236,7 +236,7 @@ class _RentalCard extends ConsumerWidget {
     final cc = _catColor(rental.category);
 
     return SurfaceCard(
-      borderColor: rental.isOverdue ? AppColors.coral.withOpacity(0.5) : null,
+      borderColor: rental.isOverdue ? AppColors.coral.withValues(alpha: 0.5) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -790,9 +790,9 @@ class _StatusPill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: _color.withOpacity(0.12),
+      color: _color.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: _color.withOpacity(0.35)),
+      border: Border.all(color: _color.withValues(alpha: 0.35)),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
@@ -816,7 +816,7 @@ class _DaysRemainingPill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: AppColors.cyan.withOpacity(0.1),
+      color: AppColors.cyan.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
@@ -831,7 +831,7 @@ class _OverduePill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: AppColors.coral.withOpacity(0.12),
+      color: AppColors.coral.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
@@ -860,9 +860,9 @@ class _ActionButton extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.35)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
