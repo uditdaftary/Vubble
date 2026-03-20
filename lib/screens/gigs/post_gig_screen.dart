@@ -316,9 +316,9 @@ class _PostGigScreenState extends ConsumerState<PostGigScreen>
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.violet.withOpacity(0.35)),
+        border: Border.all(color: AppColors.violet.withValues(alpha: 0.35)),
         boxShadow: [
-          BoxShadow(color: AppColors.violet.withOpacity(0.08), blurRadius: 20),
+          BoxShadow(color: AppColors.violet.withValues(alpha: 0.08), blurRadius: 20),
         ],
       ),
       child: Column(
