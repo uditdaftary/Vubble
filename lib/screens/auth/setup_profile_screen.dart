@@ -130,7 +130,7 @@ class _SetupProfileScreenState extends ConsumerState<SetupProfileScreen>
                 begin: Alignment.topLeft, end: Alignment.bottomRight,
               ),
               boxShadow: [BoxShadow(
-                color: AppColors.violet.withOpacity(0.3),
+                color: AppColors.violet.withValues(alpha: 0.3),
                 blurRadius: 16, spreadRadius: 2,
               )],
             ),
@@ -161,9 +161,9 @@ class _SetupProfileScreenState extends ConsumerState<SetupProfileScreen>
                     key: const ValueKey('reg'),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.cyan.withOpacity(0.12),
+                      color: AppColors.cyan.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppColors.cyan.withOpacity(0.3)),
+                      border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
                     ),
                     child: Text(
                       _regNoCtrl.text.toUpperCase(),
@@ -174,7 +174,7 @@ class _SetupProfileScreenState extends ConsumerState<SetupProfileScreen>
                     key: const ValueKey('verified'),
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.violet.withOpacity(0.18),
+                      color: AppColors.violet.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text('✓ Verified', style: AppText.label(size: 10, color: AppColors.violet)),

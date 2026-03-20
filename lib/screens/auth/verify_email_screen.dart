@@ -115,9 +115,9 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: SweepGradient(colors: [
-                            AppColors.violet.withOpacity(0.0),
-                            AppColors.violet.withOpacity(0.6),
-                            AppColors.cyan.withOpacity(0.0),
+                            AppColors.violet.withValues(alpha: 0.0),
+                            AppColors.violet.withValues(alpha: 0.6),
+                            AppColors.cyan.withValues(alpha: 0.0),
                           ]),
                         ),
                       ),
@@ -129,10 +129,10 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
                         width: 100, height: 100,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppColors.violet.withOpacity(0.12),
+                          color: AppColors.violet.withValues(alpha: 0.12),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.violet.withOpacity(0.2),
+                              color: AppColors.violet.withValues(alpha: 0.2),
                               blurRadius: 24, spreadRadius: 4,
                             ),
                           ],
@@ -170,9 +170,9 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.violet.withOpacity(0.12),
+                  color: AppColors.violet.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.violet.withOpacity(0.35)),
+                  border: Border.all(color: AppColors.violet.withValues(alpha: 0.35)),
                 ),
                 child: Text(email,
                   style: GoogleFonts.syne(

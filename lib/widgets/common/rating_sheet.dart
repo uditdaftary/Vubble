@@ -130,7 +130,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.textMuted.withOpacity(0.3),
+                  color: AppColors.textMuted.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -155,7 +155,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                 itemSize: 42,
                 itemPadding: const EdgeInsets.symmetric(horizontal: 4),
                 unratedColor: AppColors.surfaceHigh,
-                glowColor: AppColors.amber.withOpacity(0.3),
+                glowColor: AppColors.amber.withValues(alpha: 0.3),
                 itemBuilder: (_, _) =>
                     const Icon(Icons.star_rounded, color: AppColors.amber),
                 onRatingUpdate: (rating) {

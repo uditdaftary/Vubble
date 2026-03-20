@@ -59,7 +59,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.textMuted.withOpacity(0.3),
+                color: AppColors.textMuted.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -304,7 +304,7 @@ class _ReportTile extends StatelessWidget {
       onTap: onTap,
       child: SurfaceCard(
         padding: const EdgeInsets.all(14),
-        borderColor: AppColors.coral.withOpacity(0.2),
+        borderColor: AppColors.coral.withValues(alpha: 0.2),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -314,7 +314,7 @@ class _ReportTile extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: _targetColor.withOpacity(0.12),
+                    color: _targetColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(_targetIcon, color: _targetColor, size: 18),
@@ -407,7 +407,7 @@ class _ReportTile extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.coral.withOpacity(0.12),
+                    color: AppColors.coral.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -443,9 +443,9 @@ class _ActionTile extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
